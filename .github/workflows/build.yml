@@ -20,12 +20,37 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          flutter-version: '3.24.5'
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Check Firebase config
+        run: |
+          if [ ! -f android/app/google-services.json ]; then
+            echo "::error::android/app/google-services.json is missing. The Google Services plugin requires it."
+            exit 1
+          fi
+          echo "google-services.json found"
+
+      - name: Create debug keystore for CI if missing
+        run: |
+          if [ ! -f android/key.properties ]; then
+            echo "No key.properties found, generating debug keystore for CI..."
+            keytool -genkey -v -keystore android/app/debug-ci.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=CI, OU=CI, O=CI, L=CI, S=CI, C=US"
+            printf "storePassword=android\nkeyPassword=android\nkeyAlias=androiddebugkey\nstoreFile=debug-ci.keystore\n" > android/key.properties
+            cat android/key.properties
+          else
+            echo "key.properties exists"
+            cat android/key.properties
+          fi
 
       - name: Get dependencies
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --verbose
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
