@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "812588965409",
+    "project_id": "kats-chat",
+    "storage_bucket": "kats-chat.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:812588965409:android:6717adcf62604ea0b88d60",
+        "android_client_info": {
+          "package_name": "com.tauseef.whatsappclone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbojK0DyPt89E9ah54tgXfyXN5lLrcv44"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
