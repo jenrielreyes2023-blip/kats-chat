@@ -34,6 +34,47 @@ jobs:
           fi
           echo "google-services.json found"
 
+      - name: Ensure firebase_options.dart exists
+        run: |
+          if [ ! -f lib/firebase_options.dart ]; then
+            echo "firebase_options.dart missing, creating fallback..."
+            mkdir -p lib
+            cat > lib/firebase_options.dart << 'EOF'
+          // Fallback generated in CI - commit real file to repo for proper config
+          // ignore_for_file: type=lint
+          import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+          import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform, kIsWeb;
+          class DefaultFirebaseOptions {
+            static FirebaseOptions get currentPlatform {
+              if (kIsWeb) throw UnsupportedError('web not configured');
+              switch (defaultTargetPlatform) {
+                case TargetPlatform.android: return android;
+                case TargetPlatform.iOS: return ios;
+                default: throw UnsupportedError('platform not supported');
+              }
+            }
+            static const FirebaseOptions android = FirebaseOptions(
+              apiKey: 'AIzaSyAbojK0DyPt89E9ah54tgXfyXN5lLrcv44',
+              appId: '1:812588965409:android:6717adcf62604ea0b88d60',
+              messagingSenderId: '812588965409',
+              projectId: 'kats-chat',
+              storageBucket: 'kats-chat.firebasestorage.app',
+            );
+            static const FirebaseOptions ios = FirebaseOptions(
+              apiKey: 'AIzaSyAbojK0DyPt89E9ah54tgXfyXN5lLrcv44',
+              appId: '1:812588965409:ios:placeholder',
+              messagingSenderId: '812588965409',
+              projectId: 'kats-chat',
+              storageBucket: 'kats-chat.firebasestorage.app',
+              iosBundleId: 'com.tauseef.whatsappclone',
+            );
+          }
+          EOF
+            cat lib/firebase_options.dart
+          else
+            echo "firebase_options.dart exists"
+          fi
+
       - name: Create debug keystore for CI if missing
         run: |
           if [ ! -f android/key.properties ]; then
