@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:whatsapp_clone/features/auth/data/repositories/auth_repository.dart';
@@ -225,7 +225,10 @@ class VerificationController {
                       existingUser = await firestoreRepo.getUserById(currentUid);
                     }
                     if (existingUser == null) {
-                      existingUser = await firestoreRepo.getUserByPhone(phone);
+                      existingUser = await firestoreRepo.getUserByPhone(phone.rawNumber);
+                    }
+                    if (existingUser == null && phone.number != null) {
+                      existingUser = await firestoreRepo.getUserByPhone(phone.number!);
                     }
 
                     if (existingUser != null) {

@@ -68,38 +68,6 @@ class FirebaseFirestoreRepo {
         : null;
   }
 
-  Future<User?> getUserByPhone(Phone phone) async {
-    try {
-      final raw = phone.rawNumber;
-      final numOnly = phone.number ?? '';
-
-      if (raw.isNotEmpty) {
-        final snapRaw = await firestore
-            .collection('users')
-            .where('phone.rawNumber', isEqualTo: raw)
-            .limit(1)
-            .get();
-        if (snapRaw.docs.isNotEmpty) {
-          return User.fromMap(snapRaw.docs.first.data());
-        }
-      }
-
-      if (numOnly.isNotEmpty) {
-        final snapNum = await firestore
-            .collection('users')
-            .where('phone.number', isEqualTo: numOnly)
-            .limit(1)
-            .get();
-        if (snapNum.docs.isNotEmpty) {
-          return User.fromMap(snapNum.docs.first.data());
-        }
-      }
-    } catch (e) {
-      // Ignored
-    }
-    return null;
-  }
-
   Stream<List<Message>> getChatStream(String ownId) {
     return firestore
         .collection('chats')
