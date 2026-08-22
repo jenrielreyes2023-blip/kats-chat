@@ -82,6 +82,25 @@ flutter:
     - family: AzeretMono
       fonts:
         - asset: assets/fonts/AzeretMono-Regular.ttf
+    - family: SFProRounded
+      fonts:
+        - asset: assets/fonts/SFProRounded/SFProRounded-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/SFProRounded/SFProRounded-Light.ttf
+          weight: 300
+        - asset: assets/fonts/SFProRounded/SFProRounded-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/SFProRounded/SFProRounded-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/SFProRounded/SFProRounded-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/SFProRounded/SFProRounded-Black.ttf
+          weight: 900
+        - asset: assets/fonts/SFProRounded/SFProRounded-Italic.ttf
+          style: italic
+        - asset: assets/fonts/SFProRounded/SFProRounded-BoldItalic.ttf
+          weight: 700
+          style: italic
 
 # Fix for Dart 3.5+ UnmodifiableUint8ListView removal (win32 5.2.0 / archive 3.4.10 incompatible with Flutter 3.24.5)
 dependency_overrides:

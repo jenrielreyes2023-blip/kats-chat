@@ -69,6 +69,7 @@ final lightThemeProvider = Provider((ref) => _theme);
 // Light theme (Not implemented yet)
 final _customTheme = CustomThemeData(isDarkTheme: false);
 final _theme = ThemeData(
+  fontFamily: 'SFProRounded',
   brightness: Brightness.light,
   dialogTheme: DialogTheme(
     shape: RoundedRectangleBorder(
@@ -123,6 +124,7 @@ final _theme = ThemeData(
 // Dark theme
 final _customDarkTheme = CustomThemeData(isDarkTheme: true);
 final _darkTheme = ThemeData(
+  fontFamily: 'SFProRounded',
   brightness: Brightness.dark,
   dialogTheme: DialogTheme(
     shape: RoundedRectangleBorder(
