@@ -388,14 +388,19 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
       debugPrint('R2 upload failed, falling back to Firebase: $e');
     }
 
-    await UploadService.upload(
-      taskId: message.id,
-      file: message.attachment!.file!,
-      path: 'attachments/${message.attachment!.fileName}',
-      onUploadDone: (snapshot) async =>
-          await uploadCompleteHandler(snapshot, message),
-      onUploadError: () async => await stopUpload(message),
-    );
+    try {
+      await UploadService.upload(
+        taskId: message.id,
+        file: message.attachment!.file!,
+        path: 'attachments/${message.attachment!.fileName}',
+        onUploadDone: (snapshot) async =>
+            await uploadCompleteHandler(snapshot, message),
+        onUploadError: () async => await stopUpload(message),
+      );
+    } catch (e) {
+      debugPrint("UploadService error: $e");
+      await stopUpload(message);
+    }
   }
 
   Future<void> uploadCompleteHandlerR2(
@@ -481,19 +486,30 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
   }
 
   Future<void> compressAttachment(Message message) async {
-    final compressedFile = await CompressionService.compressImage(
-      message.attachment!.file!,
-    );
+    try {
+      final compressedFile = await CompressionService.compressImage(
+        message.attachment!.file!,
+      );
 
-    await compressedFile.copy(
-      DeviceStorage.getMediaFilePath(
-        message.attachment!.fileName,
-      ),
-    );
+      await compressedFile.copy(
+        DeviceStorage.getMediaFilePath(
+          message.attachment!.fileName,
+        ),
+      );
 
-    message.attachment!.file = compressedFile;
-    message.attachment!.fileSize = await compressedFile.length();
-    message.attachment!.fileExtension = compressedFile.path.split('.').last;
+      message.attachment!.file = compressedFile;
+      message.attachment!.fileSize = await compressedFile.length();
+      message.attachment!.fileExtension = compressedFile.path.split('.').last;
+    } catch (e) {
+      debugPrint("compressAttachment error: $e");
+      try {
+        await message.attachment!.file!.copy(
+          DeviceStorage.getMediaFilePath(
+            message.attachment!.fileName,
+          ),
+        );
+      } catch (_) {}
+    }
   }
 
   Future<void> markMessageAsSeen(Message message) async {
