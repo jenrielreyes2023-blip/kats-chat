@@ -85,42 +85,40 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         titleSpacing: 0.0,
-        title: Row(
-          children: [
-            CircleAvatar(
-              maxRadius: 18,
-              backgroundImage: CachedNetworkImageProvider(other.avatarUrl),
-            ),
-            const SizedBox(
-              width: 8.0,
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        title: StreamBuilder<User?>(
+          stream: ref
+              .read(firebaseFirestoreRepositoryProvider)
+              .userStream(userId: other.id),
+          initialData: other,
+          builder: (context, userSnap) {
+            final liveUser = userSnap.data ?? other;
+            return Row(
               children: [
-                Text(
-                  widget.otherUserContactName,
-                  style: Theme.of(context).custom.textTheme.titleMedium,
+                CircleAvatar(
+                  maxRadius: 18,
+                  backgroundImage:
+                      CachedNetworkImageProvider(liveUser.avatarUrl),
                 ),
-                StreamBuilder<UserActivityStatus>(
-                  stream: ref
-                      .read(firebaseFirestoreRepositoryProvider)
-                      .userActivityStatusStream(userId: other.id),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return Container();
-                    }
-
-                    return snapshot.data!.value == 'Online'
-                        ? Text(
-                            'Online',
-                            style: Theme.of(context).custom.textTheme.caption,
-                          )
-                        : Container();
-                  },
+                const SizedBox(
+                  width: 8.0,
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.otherUserContactName,
+                      style: Theme.of(context).custom.textTheme.titleMedium,
+                    ),
+                    if (liveUser.activityStatus == UserActivityStatus.online)
+                      Text(
+                        'Online',
+                        style: Theme.of(context).custom.textTheme.caption,
+                      ),
+                  ],
                 ),
               ],
-            ),
-          ],
+            );
+          },
         ),
         leadingWidth: 36.0,
         leading: IconButton(

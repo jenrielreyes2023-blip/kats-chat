@@ -83,19 +83,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       final compressed = await CompressionService.compressImage(imageFile);
       final uid = _currentUser.id;
       final ext = compressed.path.split('.').last;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       String newAvatarUrl = '';
 
       // Try R2 first
       try {
         newAvatarUrl = await R2StorageService.uploadFile(
           file: compressed,
-          path: 'userAvatars/$uid.$ext',
+          path: 'userAvatars/$uid-$timestamp.$ext',
         );
       } catch (e) {
         debugPrint('R2 Avatar upload failed, falling back to Firebase: $e');
         final task = await ref
             .read(firebaseStorageRepoProvider)
-            .uploadFileToFirebase(compressed, 'userAvatars/$uid');
+            .uploadFileToFirebase(compressed, 'userAvatars/$uid-$timestamp');
         newAvatarUrl = await (await task).ref.getDownloadURL();
       }
 

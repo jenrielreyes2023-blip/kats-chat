@@ -43,6 +43,17 @@ class FirebaseFirestoreRepo {
     });
   }
 
+  Stream<User?> userStream({required String userId}) {
+    return firestore.collection('users').doc(userId).snapshots().map((event) {
+      if (event.exists && event.data() != null) {
+        final user = User.fromMap(event.data()!);
+        IsarDb.saveUser(user);
+        return user;
+      }
+      return null;
+    });
+  }
+
   Future<void> sendMessage(Message message) async {
     final now = DateTime.now();
     final expireAt = Timestamp.fromDate(

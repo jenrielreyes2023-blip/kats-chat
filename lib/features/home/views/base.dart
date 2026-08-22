@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,6 +38,7 @@ class _HomePageState extends ConsumerState<HomePage>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late User _currentUser;
   late final StreamSubscription<List<Message>> messageListener;
+  late final StreamSubscription<QuerySnapshot<Map<String, dynamic>>> _usersSubscription;
   late TabController _tabController;
   late List<Widget> _floatingButtons;
 
@@ -68,6 +70,25 @@ class _HomePageState extends ConsumerState<HomePage>
 
     // Restore / sync last 2 days messages from cloud
     _syncLast2DaysMessages(_currentUser.id);
+
+    // Listen to live user profile changes (avatar, name) across all devices
+    _usersSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .snapshots()
+        .listen((snapshot) async {
+      final updatedUsers = <User>[];
+      for (final doc in snapshot.docs) {
+        if (doc.data().isNotEmpty) {
+          try {
+            updatedUsers.add(User.fromMap(doc.data()));
+          } catch (_) {}
+        }
+      }
+      if (updatedUsers.isNotEmpty) {
+        await IsarDb.saveUsers(updatedUsers);
+        if (mounted) setState(() {});
+      }
+    });
 
     messageListener = firestore.getChatStream(widget.user.id).listen(
       (messages) async {
@@ -160,6 +181,7 @@ class _HomePageState extends ConsumerState<HomePage>
     _tabController.removeListener(handleTabIndexChange);
     _tabController.dispose();
     messageListener.cancel();
+    _usersSubscription.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

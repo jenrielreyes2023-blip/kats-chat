@@ -362,6 +362,34 @@ class IsarDb {
     return await isar.users.filter().idEqualTo(id).findFirst();
   }
 
+  static Future<void> saveUser(User user) async {
+    try {
+      final existing =
+          await isar.users.filter().idEqualTo(user.id).findFirst();
+      if (existing != null) {
+        user.isarId = existing.isarId;
+      }
+      await isar.writeTxn(() async {
+        await isar.users.put(user);
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> saveUsers(List<User> users) async {
+    try {
+      for (final user in users) {
+        final existing =
+            await isar.users.filter().idEqualTo(user.id).findFirst();
+        if (existing != null) {
+          user.isarId = existing.isarId;
+        }
+      }
+      await isar.writeTxn(() async {
+        await isar.users.putAll(users);
+      });
+    } catch (_) {}
+  }
+
   static Future<List<Contact>> getWhatsAppContacts() async {
     return await isar.contacts.filter().userIdIsNotNull().findAll();
   }
