@@ -17,14 +17,26 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v4
+
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           flutter-version: '3.24.5'
           cache: true
 
+      - name: Cache Pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
       - name: Flutter doctor
-        run: flutter doctor -v
+        run: flutter doctor
 
       - name: Check Firebase config
         run: |
