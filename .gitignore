@@ -52,3 +52,4 @@ ios/build
 .env
 .env.local
 lib/shared/repositories/httpsms_keys.dart
+lib/shared/repositories/r2_keys.dart
