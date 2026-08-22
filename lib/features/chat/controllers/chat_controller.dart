@@ -303,6 +303,39 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
   Future<void> sendMessageNoAttachments(Message message) async {
     await IsarDb.addMessage(message);
 
+    if (message.receiverId == 'whatsup_bot') {
+      Future.delayed(const Duration(milliseconds: 600), () async {
+        await IsarDb.updateMessage(message.id, status: MessageStatus.delivered);
+      });
+      Future.delayed(const Duration(milliseconds: 1200), () async {
+        await IsarDb.updateMessage(message.id, status: MessageStatus.seen);
+      });
+      Future.delayed(const Duration(milliseconds: 1800), () async {
+        final replies = [
+          "Kumusta! Nakarating ang mensahe mo. Pwede mong subukan mag-record ng voice note o magpadala ng photos! 🎙️📸",
+          "Awesome! Gumagana nang maayos ang conversation interface at real-time messaging. 🔥",
+          "Ganda ng WhatsApp clone no? Subukan mo rin ang dark mode at camera attachment! 🌓",
+          "Roger that! Received loud and clear. 👍",
+        ];
+        final replyText = replies[(DateTime.now().millisecondsSinceEpoch ~/ 1000) % replies.length];
+        final botReply = Message(
+          id: const Uuid().v4(),
+          content: replyText,
+          senderId: 'whatsup_bot',
+          receiverId: message.senderId,
+          status: MessageStatus.delivered,
+          timestamp: Timestamp.now(),
+        );
+        await IsarDb.addMessage(botReply);
+      });
+      return;
+    }
+
+    if (message.receiverId == message.senderId) {
+      await IsarDb.updateMessage(message.id, status: MessageStatus.seen);
+      return;
+    }
+
     // Delay for smooth animation
     Future.delayed(const Duration(milliseconds: 300), () {
       ref

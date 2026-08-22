@@ -152,6 +152,109 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
               Column(
                 children: [
                   InkWell(
+                    onTap: () {
+                      final botUser = User(
+                        id: 'whatsup_bot',
+                        name: 'WhatsUp Assistant',
+                        avatarUrl: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png',
+                        phone: Phone(code: '+1', number: '1000000000', formattedNumber: '+1 000 000 0000'),
+                        activityStatus: UserActivityStatus.online,
+                      );
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatPage(
+                            self: widget.user,
+                            other: botUser,
+                            otherUserContactName: 'WhatsUp Assistant 🤖',
+                          ),
+                          settings: const RouteSettings(name: 'chat'),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: colorTheme.greenColor,
+                            child: const Icon(
+                              Icons.smart_toy_outlined,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 18.0,
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'WhatsUp Assistant 🤖',
+                                style: Theme.of(context).custom.textTheme.bold,
+                              ),
+                              Text(
+                                'Subukan ang voice notes, attachments, messages',
+                                style: Theme.of(context).custom.textTheme.caption,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatPage(
+                            self: widget.user,
+                            other: widget.user,
+                            otherUserContactName: '${widget.user.name} (You)',
+                          ),
+                          settings: const RouteSettings(name: 'chat'),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: colorTheme.greenColor,
+                            child: const Icon(
+                              Icons.person_outline,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 18.0,
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Message yourself (You)',
+                                style: Theme.of(context).custom.textTheme.bold,
+                              ),
+                              Text(
+                                'Magpadala ng notes, photos, audio sa sarili',
+                                style: Theme.of(context).custom.textTheme.caption,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  InkWell(
                     onTap: () {},
                     child: Padding(
                       padding: const EdgeInsets.symmetric(

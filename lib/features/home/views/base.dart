@@ -356,99 +356,84 @@ class HomePageContactsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorTheme = Theme.of(context).custom.colorTheme;
+    final currentUser = getCurrentUser();
 
-    return FutureBuilder(
-      future: IsarDb.getWhatsAppContacts(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Container();
-        }
+    final botUser = User(
+      id: 'whatsup_bot',
+      name: 'WhatsUp Assistant',
+      avatarUrl: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png',
+      phone: Phone(code: '+1', number: '1000000000', formattedNumber: '+1 000 000 0000'),
+      activityStatus: UserActivityStatus.online,
+    );
 
-        final users = snapshot.data!;
-        final userCount = users.length;
-        if (userCount < 2) return Container();
-
-        int avatarDisplayCount;
-        if (userCount > 4) {
-          avatarDisplayCount = 5;
-        } else {
-          avatarDisplayCount = userCount;
-        }
-
-        final descriptionList = <String>['', ''];
-        if (userCount > 3) {
-          descriptionList[0] = users.getRange(0, 3).join(', ');
-          descriptionList[1] =
-              ' and ${userCount - 3} more of your contacts\n are on WhatsApp';
-        } else if (userCount > 2) {
-          descriptionList[0] = users.getRange(0, 2).join(', ');
-          descriptionList[1] = ' and ${users[2]} are on WhatsApp';
-        } else if (userCount > 1) {
-          descriptionList[0] = users.join(' and ');
-          descriptionList[1] = ' are on WhatsApp';
-        } else {
-          descriptionList[0] = '${users.first}';
-          descriptionList[1] = ' is one WhatsApp.';
-        }
-
-        return Column(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(
-              height: 55,
-              width: (avatarDisplayCount * 36) + 30,
-              child: Stack(
-                children: [
-                  for (var i = 0; i < avatarDisplayCount; i++) ...[
-                    Positioned(
-                      right: (i * 36),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            width: 2,
-                            color: AppColorsDark.backgroundColor,
-                          ),
-                        ),
-                        child: CircleAvatar(
-                          radius: 24,
-                          backgroundImage: users[i].avatarUrl != null
-                              ? CachedNetworkImageProvider(
-                                  users[i].avatarUrl!,
-                                )
-                              : const AssetImage('assets/images/avatar.png')
-                                  as ImageProvider,
-                        ),
-                      ),
-                    )
-                  ],
-                ],
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colorTheme.greenColor.withOpacity(0.15),
+              ),
+              child: Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 64,
+                color: colorTheme.greenColor,
               ),
             ),
-            const SizedBox(
-              height: 16,
+            const SizedBox(height: 24),
+            Text(
+              'No chats yet',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: colorTheme.textColor1,
+              ),
             ),
-            RichText(
+            const SizedBox(height: 12),
+            Text(
+              'Subukan ang conversation interface kasama ang WhatsUp Assistant o mag-start ng bagong chat!',
               textAlign: TextAlign.center,
-              text: TextSpan(
-                text: descriptionList[0],
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? colorTheme.unselectedLabelColor
-                      : colorTheme.textColor1,
+              style: TextStyle(
+                fontSize: 14,
+                color: colorTheme.greyColor,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorTheme.greenColor,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                children: [
-                  TextSpan(
-                    text: descriptionList[1],
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  )
-                ],
+              ),
+              onPressed: () {
+                if (currentUser == null) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ChatPage(
+                      self: currentUser,
+                      other: botUser,
+                      otherUserContactName: 'WhatsUp Assistant 🤖',
+                    ),
+                    settings: const RouteSettings(name: 'chat'),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.smart_toy_outlined),
+              label: const Text(
+                'Subukan ang Chat Interface',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 }

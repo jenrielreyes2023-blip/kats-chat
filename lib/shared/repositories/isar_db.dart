@@ -309,6 +309,19 @@ class IsarDb {
   }
 
   static Future<User?> getUserById(String id) async {
+    if (id == 'whatsup_bot') {
+      return User(
+        id: 'whatsup_bot',
+        name: 'WhatsUp Assistant',
+        avatarUrl: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png',
+        phone: Phone(code: '+1', number: '1000000000', formattedNumber: '+1 000 000 0000'),
+        activityStatus: UserActivityStatus.online,
+      );
+    }
+    final self = getCurrentUser();
+    if (self != null && id == self.id) {
+      return self;
+    }
     return await isar.users.filter().idEqualTo(id).findFirst();
   }
 
