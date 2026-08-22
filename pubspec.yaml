@@ -79,3 +79,8 @@ flutter:
     - family: AzeretMono
       fonts:
         - asset: assets/fonts/AzeretMono-Regular.ttf
+
+# Fix for Dart 3.5+ UnmodifiableUint8ListView removal (win32 5.2.0 / archive 3.4.10 incompatible with Flutter 3.24.5)
+dependency_overrides:
+  win32: ^5.10.0
+  archive: ^3.6.1
