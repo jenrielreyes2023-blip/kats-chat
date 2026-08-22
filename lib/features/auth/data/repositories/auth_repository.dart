@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:whatsapp_clone/features/auth/domain/repositories/auth_repository.dart';
+import 'package:whatsapp_clone/shared/repositories/httpsms_service.dart';
 import 'package:whatsapp_clone/shared/utils/snackbars.dart';
 
 final authRepositoryProvider = Provider((ref) {
@@ -26,15 +27,34 @@ class FirebaseAuthRepository implements AuthenticationRepository {
     String verificationID,
     String smsCode,
   ) async {
-    if (verificationID == 'fallback-mock-vid' || smsCode == '123456' || verificationID.isEmpty) {
-      if (auth.currentUser == null) {
-        try {
-          await auth.signInAnonymously();
-        } catch (_) {}
+    // verificationID is now the phoneNumber when using HttpSMS
+    // Try HttpSMS verification first (Firestore otp_codes)
+    try {
+      final isHttpsms = verificationID.startsWith('+');
+      if (isHttpsms) {
+        final valid = await HttpsmsService.verifyOtp(
+          firestore: firestore,
+          phoneNumber: verificationID,
+          code: smsCode,
+        );
+        if (valid) {
+          if (auth.currentUser == null) {
+            try {
+              await auth.signInAnonymously();
+            } catch (_) {}
+          }
+          return true;
+        }
       }
-      return true;
+    } catch (e) {
+      // If httpsms verification throws (invalid/expired), rethrow to show error
+      // Fall through to Firebase verification if not httpsms
+      if (verificationID.startsWith('+')) {
+        rethrow;
+      }
     }
 
+    // Fallback to Firebase Phone Auth verification
     try {
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: verificationID,
@@ -45,14 +65,6 @@ class FirebaseAuthRepository implements AuthenticationRepository {
         return true;
       });
     } catch (e) {
-      if (smsCode == '123456') {
-        if (auth.currentUser == null) {
-          try {
-            await auth.signInAnonymously();
-          } catch (_) {}
-        }
-        return true;
-      }
       rethrow;
     }
   }
@@ -64,6 +76,37 @@ class FirebaseAuthRepository implements AuthenticationRepository {
     String phoneNumber,
     void Function(String code) onCodeSent,
   ) async {
+    // Primary: HttpSMS OTP (free via gateway)
+    try {
+      final otp = HttpsmsService.generateOtp();
+      await HttpsmsService.storeOtp(
+        firestore: firestore,
+        phoneNumber: phoneNumber,
+        otp: otp,
+      );
+
+      await HttpsmsService.sendOtp(
+        toPhone: phoneNumber,
+        otp: otp,
+      );
+
+      // Use phoneNumber as verificationId for HttpSMS flow
+      onCodeSent(phoneNumber);
+      if (context.mounted) Navigator.pop(context);
+      if (context.mounted) {
+        showSnackBar(
+          context: context,
+          content: "OTP Sent via HttpSMS!",
+          type: SnacBarType.info,
+        );
+      }
+      return;
+    } catch (e) {
+      debugPrint('HttpSMS send failed: $e');
+      // Fall through to Firebase as fallback
+    }
+
+    // Fallback: Firebase Phone Auth
     try {
       await auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
@@ -73,33 +116,37 @@ class FirebaseAuthRepository implements AuthenticationRepository {
           } catch (_) {}
         },
         verificationFailed: (FirebaseAuthException e) {
-          Navigator.pop(context);
-          onCodeSent('fallback-mock-vid');
-          showSnackBar(
-            context: context,
-            content: "SMS bypassed: Please enter 123456 as code",
-            type: SnacBarType.info,
-          );
+          if (context.mounted) Navigator.pop(context);
+          if (context.mounted) {
+            showSnackBar(
+              context: context,
+              content: "Verification failed: ${e.message}",
+              type: SnacBarType.error,
+            );
+          }
         },
         codeSent: (String verificationId, int? resendToken) {
           onCodeSent(verificationId);
-          Navigator.pop(context);
-          showSnackBar(
-            context: context,
-            content: "OTP Sent! (Or enter 123456)",
-            type: SnacBarType.info,
-          );
+          if (context.mounted) Navigator.pop(context);
+          if (context.mounted) {
+            showSnackBar(
+              context: context,
+              content: "OTP Sent!",
+              type: SnacBarType.info,
+            );
+          }
         },
         codeAutoRetrievalTimeout: (String verificationId) {},
       );
     } catch (e) {
-      Navigator.pop(context);
-      onCodeSent('fallback-mock-vid');
-      showSnackBar(
-        context: context,
-        content: "Please enter 123456 as code",
-        type: SnacBarType.info,
-      );
+      if (context.mounted) Navigator.pop(context);
+      if (context.mounted) {
+        showSnackBar(
+          context: context,
+          content: "Failed to send OTP. Please try again.",
+          type: SnacBarType.error,
+        );
+      }
     }
   }
 
