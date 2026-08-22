@@ -175,38 +175,49 @@ class IsarDb {
         .sortByTimestampDesc()
         .watch(fireImmediately: true)
         .asyncMap((event) async {
-      final Map<String, int> visitedChats = {};
+      final Map<String, int> visitedPartners = {};
       final recentChats = <RecentChat>[];
 
       for (final msg in event) {
         final clientIsSender = msg.senderId == currentUser.id;
-        if (visitedChats.containsKey(msg.chatId)) {
-          if (clientIsSender) continue;
-          if (msg.status == MessageStatus.seen) continue;
+        final partnerId = clientIsSender ? msg.receiverId : msg.senderId;
 
-          visitedChats[msg.chatId] = visitedChats[msg.chatId]! + 1;
+        if (visitedPartners.containsKey(partnerId)) {
+          if (!clientIsSender && msg.status != MessageStatus.seen) {
+            visitedPartners[partnerId] = visitedPartners[partnerId]! + 1;
+          }
           continue;
         }
 
-        var sender = await IsarDb.getUserById(
-          clientIsSender ? msg.receiverId : msg.senderId,
-        );
+        var sender = await IsarDb.getUserById(partnerId);
 
         Contact? contact;
-        if (sender != null) {
-          contact = await ref
-              .read(contactsRepositoryProvider)
-              .getContactByPhone(sender.phone.number!);
+        if (sender != null && sender.phone.number != null) {
+          try {
+            contact = await ref
+                .read(contactsRepositoryProvider)
+                .getContactByPhone(sender.phone.number!);
+          } catch (_) {}
         }
 
-        sender ??= await ref
-            .read(firebaseFirestoreRepositoryProvider)
-            .getUserById(
-              msg.senderId == currentUser.id ? msg.receiverId : msg.senderId,
-            );
+        if (sender == null) {
+          try {
+            sender = await ref
+                .read(firebaseFirestoreRepositoryProvider)
+                .getUserById(partnerId);
+          } catch (_) {}
+        }
+
+        sender ??= User(
+          id: partnerId,
+          name: partnerId,
+          avatarUrl: 'https://en.gravatar.com/userimage/238463648/8cc16f6f5423605920569a634fd097eb.jpeg?size=256',
+          phone: Phone(code: '', number: partnerId, formattedNumber: partnerId),
+          activityStatus: UserActivityStatus.offline,
+        );
 
         final senderName =
-            contact?.displayName ?? sender!.phone.formattedNumber;
+            contact?.displayName ?? (sender.name.isNotEmpty ? sender.name : sender.phone.formattedNumber);
 
         recentChats.add(
           RecentChat(
@@ -219,31 +230,32 @@ class IsarDb {
               status: msg.status,
               attachment: msg.attachment != null
                   ? Attachment(
-                      fileName: msg.attachment!.fileName!,
-                      fileExtension: msg.attachment!.fileExtension!,
-                      fileSize: msg.attachment!.fileSize!,
-                      width: msg.attachment!.width,
-                      height: msg.attachment!.height,
-                      uploadStatus: msg.attachment!.uploadStatus!,
+                      fileName: msg.attachment!.fileName ?? '',
+                      fileExtension: msg.attachment!.fileExtension ?? '',
+                      fileSize: msg.attachment!.fileSize ?? 0,
+                      width: msg.attachment!.width ?? 1,
+                      height: msg.attachment!.height ?? 1,
+                      uploadStatus: msg.attachment!.uploadStatus ?? UploadStatus.uploaded,
                       autoDownload: msg.attachment!.autoDownload ?? false,
-                      url: msg.attachment!.url!,
-                      type: msg.attachment!.type!,
+                      url: msg.attachment!.url ?? '',
+                      type: msg.attachment!.type ?? AttachmentType.document,
                     )
                   : null,
             ),
             user: User.fromMap(
-              sender!.toMap()..addAll({'name': senderName}),
+              sender.toMap()..addAll({'name': senderName}),
             ),
           ),
         );
 
-        visitedChats[msg.chatId] =
-            clientIsSender || msg.status == MessageStatus.seen ? 0 : 1;
+        visitedPartners[partnerId] =
+            (!clientIsSender && msg.status != MessageStatus.seen) ? 1 : 0;
       }
 
       for (final chat in recentChats) {
-        chat.unreadCount = visitedChats[
-            getChatId(chat.message.senderId, chat.message.receiverId)]!;
+        final clientIsSender = chat.message.senderId == currentUser.id;
+        final partnerId = clientIsSender ? chat.message.receiverId : chat.message.senderId;
+        chat.unreadCount = visitedPartners[partnerId] ?? 0;
       }
 
       return recentChats;
