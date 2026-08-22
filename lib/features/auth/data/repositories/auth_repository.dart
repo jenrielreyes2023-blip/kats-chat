@@ -27,13 +27,11 @@ class FirebaseAuthRepository implements AuthenticationRepository {
     String verificationID,
     String smsCode,
   ) async {
-    // verificationID is now the phoneNumber when using HttpSMS
-    // Try HttpSMS verification first (Firestore otp_codes)
+    // HttpSMS local verification (Firestore-less)
     try {
       final isHttpsms = verificationID.startsWith('+');
       if (isHttpsms) {
-        final valid = await HttpsmsService.verifyOtp(
-          firestore: firestore,
+        final valid = await HttpsmsService.verifyOtpLocal(
           phoneNumber: verificationID,
           code: smsCode,
         );
@@ -47,8 +45,6 @@ class FirebaseAuthRepository implements AuthenticationRepository {
         }
       }
     } catch (e) {
-      // If httpsms verification throws (invalid/expired), rethrow to show error
-      // Fall through to Firebase verification if not httpsms
       if (verificationID.startsWith('+')) {
         rethrow;
       }
@@ -76,11 +72,10 @@ class FirebaseAuthRepository implements AuthenticationRepository {
     String phoneNumber,
     void Function(String code) onCodeSent,
   ) async {
-    // Primary: HttpSMS OTP (free via gateway)
+    // Primary: HttpSMS OTP (Firestore-less, local memory + SharedPreferences)
     try {
       final otp = HttpsmsService.generateOtp();
-      await HttpsmsService.storeOtp(
-        firestore: firestore,
+      await HttpsmsService.storeOtpLocal(
         phoneNumber: phoneNumber,
         otp: otp,
       );

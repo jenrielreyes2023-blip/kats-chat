@@ -1,19 +1,24 @@
 import 'dart:convert';
 import 'dart:math';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// HttpSMS OTP Service
-/// Uses httpsms.com gateway to send OTP via your Android phone.
-/// ApiKey and gateway phone are configured here.
+/// HttpSMS OTP Service - Firestore-less version
+/// Uses local memory + SharedPreferences for OTP storage, no Firestore needed.
+/// Gateway credentials configured here.
 class HttpsmsService {
   // Provided by user - gateway credentials
   static const String _apiKey = 'pk_v3gfqfP0FCENI8V6zKt2nu7vOWn8hnhurofHcUTX-dC0R-G-WrckjoismC0Zs0yj';
-  // The phone ID / gateway number. For httpsms, 'from' should be the device phone.
-  // Using the provided number as gateway identifier.
   static const String _gatewayPhone = '+639187843417';
-
   static const String _baseUrl = 'https://api.httpsms.com/v1/messages/send';
+
+  // Local storage keys
+  static const String _prefsCodeSuffix = '_code';
+  static const String _prefsExpirySuffix = '_expiry';
+  static const String _prefsAttemptsSuffix = '_attempts';
+
+  // In-memory cache for fast access and testing
+  static final Map<String, Map<String, dynamic>> _memoryOtps = {};
 
   /// Generate 6-digit OTP
   static String generateOtp() {
@@ -61,7 +66,6 @@ class HttpsmsService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       } else {
-        // Log response for debugging but throw to trigger fallback handling
         throw Exception('HttpSMS failed: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
@@ -69,51 +73,117 @@ class HttpsmsService {
     }
   }
 
-  /// Store OTP in Firestore with 5-min expiry
-  static Future<void> storeOtp({
-    required FirebaseFirestore firestore,
+  /// Store OTP locally with 5-min expiry (Firestore-less)
+  static Future<void> storeOtpLocal({
     required String phoneNumber,
     required String otp,
   }) async {
     final expiresAt = DateTime.now().add(const Duration(minutes: 5));
-    await firestore.collection('otp_codes').doc(phoneNumber).set({
+    final expiryMillis = expiresAt.millisecondsSinceEpoch;
+
+    // In-memory
+    _memoryOtps[phoneNumber] = {
       'code': otp,
       'phone': phoneNumber,
-      'createdAt': FieldValue.serverTimestamp(),
-      'expiresAt': Timestamp.fromDate(expiresAt),
+      'expiresAt': expiryMillis,
       'attempts': 0,
-    });
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+    };
+
+    // Persist to SharedPreferences for app restarts
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(phoneNumber + _prefsCodeSuffix, otp);
+      await prefs.setInt(phoneNumber + _prefsExpirySuffix, expiryMillis);
+      await prefs.setInt(phoneNumber + _prefsAttemptsSuffix, 0);
+    } catch (_) {
+      // If SharedPreferences fails, memory cache still works
+    }
   }
 
-  /// Verify OTP from Firestore
-  static Future<bool> verifyOtp({
-    required FirebaseFirestore firestore,
+  /// Verify OTP locally (Firestore-less)
+  static Future<bool> verifyOtpLocal({
     required String phoneNumber,
     required String code,
   }) async {
-    final doc = await firestore.collection('otp_codes').doc(phoneNumber).get();
-    if (!doc.exists) {
+    Map<String, dynamic>? data = _memoryOtps[phoneNumber];
+
+    // Fallback to SharedPreferences if not in memory (e.g., after restart)
+    if (data == null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final storedCode = prefs.getString(phoneNumber + _prefsCodeSuffix);
+        final expiry = prefs.getInt(phoneNumber + _prefsExpirySuffix);
+        final attempts = prefs.getInt(phoneNumber + _prefsAttemptsSuffix);
+        if (storedCode != null && expiry != null) {
+          data = {
+            'code': storedCode,
+            'phone': phoneNumber,
+            'expiresAt': expiry,
+            'attempts': attempts ?? 0,
+          };
+          _memoryOtps[phoneNumber] = data;
+        }
+      } catch (_) {}
+    }
+
+    if (data == null) {
       throw Exception('OTP not found. Please request a new code.');
     }
-    final data = doc.data()!;
+
     final storedCode = data['code'] as String;
-    final expiresAt = (data['expiresAt'] as Timestamp).toDate();
+    final expiresAtMillis = data['expiresAt'] as int;
+    final expiresAt = DateTime.fromMillisecondsSinceEpoch(expiresAtMillis);
 
     if (DateTime.now().isAfter(expiresAt)) {
-      await firestore.collection('otp_codes').doc(phoneNumber).delete();
+      await _deleteLocal(phoneNumber);
       throw Exception('OTP expired. Please request a new code.');
     }
 
     if (storedCode != code) {
       // Increment attempts
-      await firestore.collection('otp_codes').doc(phoneNumber).update({
-        'attempts': FieldValue.increment(1),
-      });
+      data['attempts'] = (data['attempts'] as int) + 1;
+      _memoryOtps[phoneNumber] = data;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(phoneNumber + _prefsAttemptsSuffix, data['attempts'] as int);
+      } catch (_) {}
       throw Exception('Invalid OTP!');
     }
 
     // OTP valid - delete it
-    await firestore.collection('otp_codes').doc(phoneNumber).delete();
+    await _deleteLocal(phoneNumber);
     return true;
+  }
+
+  static Future<void> _deleteLocal(String phoneNumber) async {
+    _memoryOtps.remove(phoneNumber);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(phoneNumber + _prefsCodeSuffix);
+      await prefs.remove(phoneNumber + _prefsExpirySuffix);
+      await prefs.remove(phoneNumber + _prefsAttemptsSuffix);
+    } catch (_) {}
+  }
+
+  // For testing: clear all
+  static Future<void> clearAllForTest() async {
+    _memoryOtps.clear();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys().where((k) => k.contains(_prefsCodeSuffix) || k.contains(_prefsExpirySuffix) || k.contains(_prefsAttemptsSuffix));
+      for (final k in keys) {
+        await prefs.remove(k);
+      }
+    } catch (_) {}
+  }
+
+  // For testing: get attempts
+  static int? getAttemptsForTest(String phoneNumber) {
+    return _memoryOtps[phoneNumber]?['attempts'] as int?;
+  }
+
+  static bool existsForTest(String phoneNumber) {
+    return _memoryOtps.containsKey(phoneNumber);
   }
 }
