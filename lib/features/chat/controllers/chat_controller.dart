@@ -18,6 +18,7 @@ import 'package:whatsapp_clone/shared/models/user.dart';
 import 'package:whatsapp_clone/shared/repositories/compression_service.dart';
 import 'package:whatsapp_clone/shared/repositories/firebase_firestore.dart';
 import 'package:whatsapp_clone/shared/repositories/isar_db.dart';
+import 'package:whatsapp_clone/shared/repositories/r2_storage.dart';
 import 'package:whatsapp_clone/shared/repositories/upload_service.dart';
 import 'package:whatsapp_clone/shared/utils/attachment_utils.dart';
 import 'package:whatsapp_clone/shared/utils/storage_paths.dart';
@@ -372,6 +373,21 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
   }
 
   Future<void> uploadAttachment(Message message) async {
+    message.attachment!.uploadStatus = UploadStatus.uploading;
+    await IsarDb.updateMessage(message.id, attachment: message.attachment);
+
+    // Try R2 first (Cloudflare, 10GB free, via gitignored keys or --dart-define)
+    try {
+      final url = await R2StorageService.uploadFile(
+        file: message.attachment!.file!,
+        path: 'attachments/${message.attachment!.fileName}',
+      );
+      await uploadCompleteHandlerR2(url, message);
+      return;
+    } catch (e) {
+      debugPrint('R2 upload failed, falling back to Firebase: $e');
+    }
+
     await UploadService.upload(
       taskId: message.id,
       file: message.attachment!.file!,
@@ -380,9 +396,31 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
           await uploadCompleteHandler(snapshot, message),
       onUploadError: () async => await stopUpload(message),
     );
+  }
 
-    message.attachment!.uploadStatus = UploadStatus.uploading;
-    await IsarDb.updateMessage(message.id, attachment: message.attachment);
+  Future<void> uploadCompleteHandlerR2(
+    String url,
+    Message message,
+  ) async {
+    ref
+        .read(firebaseFirestoreRepositoryProvider)
+        .sendMessage(
+          message
+            ..status = MessageStatus.sent
+            ..attachment!.url = url
+            ..attachment!.uploadStatus = UploadStatus.uploaded,
+        )
+        .then((_) async {
+      await IsarDb.updateMessage(
+        message.id,
+        status: message.status,
+        attachment: message.attachment!
+          ..url = url
+          ..uploadStatus = UploadStatus.uploaded,
+      );
+
+      ref.read(pushNotificationsRepoProvider).sendPushNotification(message);
+    });
   }
 
   Future<void> uploadCompleteHandler(
