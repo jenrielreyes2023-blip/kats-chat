@@ -27,42 +27,20 @@ class FirebaseAuthRepository implements AuthenticationRepository {
     String verificationID,
     String smsCode,
   ) async {
-    // HttpSMS local verification (Firestore-less)
-    try {
-      final isHttpsms = verificationID.startsWith('+');
-      if (isHttpsms) {
-        final valid = await HttpsmsService.verifyOtpLocal(
-          phoneNumber: verificationID,
-          code: smsCode,
-        );
-        if (valid) {
-          if (auth.currentUser == null) {
-            try {
-              await auth.signInAnonymously();
-            } catch (_) {}
-          }
-          return true;
-        }
+    // HttpSMS ONLY - no Firebase fallback (per user request)
+    final valid = await HttpsmsService.verifyOtpLocal(
+      phoneNumber: verificationID,
+      code: smsCode,
+    );
+    if (valid) {
+      if (auth.currentUser == null) {
+        try {
+          await auth.signInAnonymously();
+        } catch (_) {}
       }
-    } catch (e) {
-      if (verificationID.startsWith('+')) {
-        rethrow;
-      }
+      return true;
     }
-
-    // Fallback to Firebase Phone Auth verification
-    try {
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: verificationID,
-        smsCode: smsCode,
-      );
-
-      return await auth.signInWithCredential(credential).then((_) {
-        return true;
-      });
-    } catch (e) {
-      rethrow;
-    }
+    return false;
   }
 
   @override
@@ -72,7 +50,7 @@ class FirebaseAuthRepository implements AuthenticationRepository {
     String phoneNumber,
     void Function(String code) onCodeSent,
   ) async {
-    // Primary: HttpSMS OTP (Firestore-less, local memory + SharedPreferences)
+    // HttpSMS ONLY - no Firebase fallback (per user request)
     try {
       final otp = HttpsmsService.generateOtp();
       await HttpsmsService.storeOtpLocal(
@@ -85,7 +63,6 @@ class FirebaseAuthRepository implements AuthenticationRepository {
         otp: otp,
       );
 
-      // Use phoneNumber as verificationId for HttpSMS flow
       onCodeSent(phoneNumber);
       if (context.mounted) Navigator.pop(context);
       if (context.mounted) {
@@ -95,53 +72,16 @@ class FirebaseAuthRepository implements AuthenticationRepository {
           type: SnacBarType.info,
         );
       }
-      return;
-    } catch (e) {
-      debugPrint('HttpSMS send failed: $e');
-      // Fall through to Firebase as fallback
-    }
-
-    // Fallback: Firebase Phone Auth
-    try {
-      await auth.verifyPhoneNumber(
-        phoneNumber: phoneNumber,
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          try {
-            await auth.signInWithCredential(credential);
-          } catch (_) {}
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          if (context.mounted) Navigator.pop(context);
-          if (context.mounted) {
-            showSnackBar(
-              context: context,
-              content: "Verification failed: ${e.message}",
-              type: SnacBarType.error,
-            );
-          }
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          onCodeSent(verificationId);
-          if (context.mounted) Navigator.pop(context);
-          if (context.mounted) {
-            showSnackBar(
-              context: context,
-              content: "OTP Sent!",
-              type: SnacBarType.info,
-            );
-          }
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {},
-      );
     } catch (e) {
       if (context.mounted) Navigator.pop(context);
       if (context.mounted) {
         showSnackBar(
           context: context,
-          content: "Failed to send OTP. Please try again.",
+          content: "HttpSMS failed: $e. Check API key & gateway.",
           type: SnacBarType.error,
         );
       }
+      debugPrint('HttpSMS failed: $e');
     }
   }
 
