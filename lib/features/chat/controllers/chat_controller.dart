@@ -464,7 +464,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
 
   Future<void> downloadAttachment(
     Message message,
-    void Function(TaskSnapshot) onComplete,
+    void Function(TaskSnapshot?) onComplete,
     void Function() onError,
   ) async {
     await DownloadService.download(

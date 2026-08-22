@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:whatsapp_clone/features/auth/data/repositories/auth_repository.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
 import 'package:whatsapp_clone/shared/repositories/firebase_storage.dart';
+import 'package:whatsapp_clone/shared/repositories/r2_storage.dart';
 
 final authControllerProvider = Provider((ref) {
   return AuthController(ref: ref);
@@ -56,12 +57,21 @@ class AuthController {
 
     if (avatar != null) {
       try {
-        final task = await ref
-            .read(firebaseStorageRepoProvider)
-            .uploadFileToFirebase(avatar, 'userAvatars/$uid');
-        avatarUrl = await (await task).ref.getDownloadURL();
+        final ext = avatar.path.split('.').last;
+        avatarUrl = await R2StorageService.uploadFile(
+          file: avatar,
+          path: 'userAvatars/$uid.$ext',
+        );
       } catch (e) {
-        debugPrint("Avatar upload error: $e");
+        debugPrint("R2 Avatar upload error: $e, trying Firebase");
+        try {
+          final task = await ref
+              .read(firebaseStorageRepoProvider)
+              .uploadFileToFirebase(avatar, 'userAvatars/$uid');
+          avatarUrl = await (await task).ref.getDownloadURL();
+        } catch (e2) {
+          debugPrint("Firebase Avatar upload error: $e2");
+        }
       }
     }
 
