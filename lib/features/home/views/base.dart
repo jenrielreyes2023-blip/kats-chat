@@ -1,10 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:whatsapp_clone/features/auth/data/repositories/auth_repository.dart';
 import 'package:whatsapp_clone/features/auth/views/welcome.dart';
 import 'package:whatsapp_clone/features/chat/models/attachement.dart';
@@ -62,6 +62,9 @@ class _HomePageState extends ConsumerState<HomePage>
       userId: widget.user.id,
       statusValue: UserActivityStatus.online.value,
     );
+
+    // Restore / sync last 2 days messages from cloud
+    _syncLast2DaysMessages(widget.user.id);
 
     messageListener = firestore.getChatStream(widget.user.id).listen(
       (messages) async {
@@ -217,6 +220,38 @@ class _HomePageState extends ConsumerState<HomePage>
         ],
       ),
     );
+  }
+
+  Future<void> _syncLast2DaysMessages(String userId) async {
+    try {
+      final firestore = ref.read(firebaseFirestoreRepositoryProvider);
+      final messages = await firestore.restoreLast2DaysMessages(userId);
+      if (messages.isNotEmpty) {
+        await IsarDb.addMessages(messages);
+
+        for (final message in messages) {
+          if (message.attachment != null &&
+              message.attachment!.autoDownload &&
+              message.attachment!.url.isNotEmpty) {
+            final localPath = DeviceStorage.getMediaFilePath(
+              message.attachment!.fileName,
+            );
+            if (!File(localPath).existsSync()) {
+              DownloadService.download(
+                taskId: message.id,
+                url: message.attachment!.url,
+                path: localPath,
+                onDownloadComplete: (_) {},
+                onDownloadError: () {},
+              );
+            }
+          }
+        }
+      }
+      firestore.cleanupOldCloudMessages(userId);
+    } catch (e) {
+      debugPrint('Error syncing last 2 days messages: $e');
+    }
   }
 
   void _showProfileDialog() {

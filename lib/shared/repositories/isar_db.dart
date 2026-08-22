@@ -30,6 +30,19 @@ class IsarDb {
   }
 
   static Future<void> addMessage(Message message) async {
+    final existing = await isar.storedMessages
+        .filter()
+        .messageIdEqualTo(message.id)
+        .build()
+        .findFirst();
+
+    if (existing != null) {
+      if (existing.status != message.status) {
+        await updateMessage(message.id, status: message.status);
+      }
+      return;
+    }
+
     final storedMsg = StoredMessage(
       messageId: message.id,
       chatId: getChatId(message.senderId, message.receiverId),
@@ -60,7 +73,17 @@ class IsarDb {
   }
 
   static Future<void> addMessages(List<Message> messages) async {
-    final storedMessages = messages
+    if (messages.isEmpty) return;
+
+    final existingList = await isar.storedMessages
+        .filter()
+        .anyOf(messages, (q, Message m) => q.messageIdEqualTo(m.id))
+        .build()
+        .findAll();
+    final existingIds = existingList.map((e) => e.messageId).toSet();
+
+    final newStoredMessages = messages
+        .where((m) => !existingIds.contains(m.id))
         .map(
           (message) => StoredMessage(
             messageId: message.id,
@@ -88,8 +111,10 @@ class IsarDb {
         )
         .toList();
 
+    if (newStoredMessages.isEmpty) return;
+
     await isar.writeTxn(() async {
-      await isar.storedMessages.putAll(storedMessages);
+      await isar.storedMessages.putAll(newStoredMessages);
     });
   }
 

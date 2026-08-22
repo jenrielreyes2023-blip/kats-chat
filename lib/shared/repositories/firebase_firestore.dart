@@ -7,6 +7,9 @@ import 'package:whatsapp_clone/shared/models/user.dart';
 import 'package:whatsapp_clone/shared/repositories/isar_db.dart';
 import 'package:whatsapp_clone/shared/utils/shared_pref.dart';
 
+import 'package:flutter/foundation.dart';
+import 'package:whatsapp_clone/shared/utils/abc.dart';
+
 final firebaseFirestoreRepositoryProvider = Provider(
   (ref) => FirebaseFirestoreRepo(
     firestore: FirebaseFirestore.instance
@@ -41,12 +44,61 @@ class FirebaseFirestoreRepo {
   }
 
   Future<void> sendMessage(Message message) async {
+    final now = DateTime.now();
+    final expireAt = Timestamp.fromDate(
+      now.add(const Duration(days: 2)),
+    );
+    final data = message.toMap()..addAll({'expireAt': expireAt});
+
+    // 1. Transient real-time delivery queue for receiver
     await firestore
         .collection('chats')
         .doc(message.receiverId)
         .collection('messages')
         .doc(message.id)
-        .set(message.toMap());
+        .set(data);
+
+    // 2. 2-day cloud history for sender
+    await firestore
+        .collection('cloud_conversations')
+        .doc(message.senderId)
+        .collection('messages')
+        .doc(message.id)
+        .set(data);
+
+    // 3. 2-day cloud history for receiver
+    await firestore
+        .collection('cloud_conversations')
+        .doc(message.receiverId)
+        .collection('messages')
+        .doc(message.id)
+        .set(data);
+  }
+
+  Future<void> updateCloudMessageStatus({
+    required String messageId,
+    required String senderId,
+    required String receiverId,
+    required String statusValue,
+  }) async {
+    final updateMap = {'status': statusValue};
+    try {
+      await firestore
+          .collection('cloud_conversations')
+          .doc(senderId)
+          .collection('messages')
+          .doc(messageId)
+          .update(updateMap);
+    } catch (_) {}
+
+    try {
+      await firestore
+          .collection('cloud_conversations')
+          .doc(receiverId)
+          .collection('messages')
+          .doc(messageId)
+          .update(updateMap);
+    } catch (_) {}
   }
 
   Future<void> sendSystemMessage({
@@ -58,6 +110,64 @@ class FirebaseFirestoreRepo {
         .doc(receiverId)
         .collection('messages')
         .add(message.toMap());
+
+    if (message.action == MessageAction.statusUpdate) {
+      final currentUserId = getCurrentUser()?.id;
+      if (currentUserId != null) {
+        updateCloudMessageStatus(
+          messageId: message.targetId,
+          senderId: receiverId,
+          receiverId: currentUserId,
+          statusValue: message.update,
+        );
+      }
+    }
+  }
+
+  Future<List<Message>> restoreLast2DaysMessages(String userId) async {
+    try {
+      final twoDaysAgo = DateTime.now().subtract(const Duration(days: 2));
+      final snap = await firestore
+          .collection('cloud_conversations')
+          .doc(userId)
+          .collection('messages')
+          .where('timestamp',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(twoDaysAgo))
+          .get();
+
+      final messages = <Message>[];
+      for (final doc in snap.docs) {
+        try {
+          messages.add(Message.fromMap(doc.data()));
+        } catch (e) {
+          debugPrint('Error deserializing restored message ${doc.id}: $e');
+        }
+      }
+      return messages;
+    } catch (e) {
+      debugPrint('Error restoring messages from cloud: $e');
+      return [];
+    }
+  }
+
+  Future<void> cleanupOldCloudMessages(String userId) async {
+    try {
+      final twoDaysAgo = DateTime.now().subtract(const Duration(days: 2));
+      final oldDocs = await firestore
+          .collection('cloud_conversations')
+          .doc(userId)
+          .collection('messages')
+          .where('timestamp', isLessThan: Timestamp.fromDate(twoDaysAgo))
+          .get();
+
+      if (oldDocs.docs.isEmpty) return;
+
+      final batch = firestore.batch();
+      for (final doc in oldDocs.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (_) {}
   }
 
   Future<User?> getUserById(String id) async {
