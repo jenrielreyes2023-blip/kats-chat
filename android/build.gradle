@@ -29,13 +29,20 @@ subprojects {
     project.evaluationDependsOn(':app')
 }
 
-subprojects {
-    afterEvaluate { project ->
+subprojects { project ->
+    def applySdkConfig = {
         if (project.hasProperty('android')) {
             project.android {
                 compileSdkVersion 34
                 buildToolsVersion "34.0.0"
             }
+        }
+    }
+    if (project.state.executed) {
+        applySdkConfig()
+    } else {
+        project.afterEvaluate {
+            applySdkConfig()
         }
     }
 }
