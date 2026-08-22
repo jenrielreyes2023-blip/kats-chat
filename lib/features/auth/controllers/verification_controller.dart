@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:whatsapp_clone/features/auth/data/repositories/auth_repository.dart';
 import 'package:whatsapp_clone/features/auth/domain/auth_service.dart';
 import 'package:whatsapp_clone/features/auth/views/user_details.dart';
+import 'package:whatsapp_clone/features/home/views/base.dart';
+import 'package:whatsapp_clone/shared/repositories/firebase_firestore.dart';
 import 'package:whatsapp_clone/shared/utils/shared_pref.dart';
 
 import 'package:whatsapp_clone/theme/theme.dart';
@@ -205,18 +209,52 @@ class VerificationController {
                   size: 38.0,
                 );
 
-                Future.delayed(const Duration(seconds: 2), () {
+                Future.delayed(const Duration(seconds: 1), () async {
                   SharedPref.instance.setInt(
                     'resendTime',
                     0,
                   );
-                  Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => UserProfileCreationPage(
-                          phone: phone,
+
+                  try {
+                    final firestoreRepo = ref.read(firebaseFirestoreRepositoryProvider);
+                    final authRepo = ref.read(authRepositoryProvider);
+
+                    User? existingUser;
+                    final currentUid = authRepo.auth.currentUser?.uid;
+                    if (currentUid != null) {
+                      existingUser = await firestoreRepo.getUserById(currentUid);
+                    }
+                    if (existingUser == null) {
+                      existingUser = await firestoreRepo.getUserByPhone(phone);
+                    }
+
+                    if (existingUser != null) {
+                      await SharedPref.instance.setString(
+                        'user',
+                        jsonEncode(existingUser.toMap()),
+                      );
+                      if (!context.mounted) return;
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => HomePage(user: existingUser!),
                         ),
+                        (route) => false,
+                      );
+                      return;
+                    }
+                  } catch (e) {
+                    debugPrint('Error checking existing user: $e');
+                  }
+
+                  if (!context.mounted) return;
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => UserProfileCreationPage(
+                        phone: phone,
                       ),
-                      (route) => false);
+                    ),
+                    (route) => false,
+                  );
                 });
               } else if (snapshot.hasError) {
                 text = 'Oops! an error occured';
