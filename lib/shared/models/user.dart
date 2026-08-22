@@ -60,6 +60,22 @@ class User {
     };
   }
 
+  User copyWith({
+    String? id,
+    String? name,
+    String? avatarUrl,
+    Phone? phone,
+    UserActivityStatus? activityStatus,
+  }) {
+    return User(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      phone: phone ?? this.phone,
+      activityStatus: activityStatus ?? this.activityStatus,
+    );
+  }
+
   @override
   String toString() {
     return name;

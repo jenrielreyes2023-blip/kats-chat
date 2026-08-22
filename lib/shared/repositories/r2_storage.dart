@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 // ignore: uri_does_not_exist
@@ -14,14 +13,12 @@ class R2StorageService {
   static const String _secretAccessKey = String.fromEnvironment('R2_SECRET_ACCESS_KEY', defaultValue: '');
   static const String _bucket = String.fromEnvironment('R2_BUCKET', defaultValue: 'whatsup-uploads');
   static const String _publicUrl = String.fromEnvironment('R2_PUBLIC_URL', defaultValue: '');
-  static const String _endpoint = String.fromEnvironment('R2_ENDPOINT', defaultValue: '');
 
   static String get _effectiveAccountId => _accountId.isNotEmpty ? _accountId : _tryKeysAccountId;
   static String get _effectiveAccessKey => _accessKeyId.isNotEmpty ? _accessKeyId : _tryKeysAccessKey;
   static String get _effectiveSecretKey => _secretAccessKey.isNotEmpty ? _secretAccessKey : _tryKeysSecretKey;
   static String get _effectiveBucket => _bucket.isNotEmpty ? _bucket : _tryKeysBucket;
   static String get _effectivePublicUrl => _publicUrl.isNotEmpty ? _publicUrl : _tryKeysPublicUrl;
-  static String get _effectiveEndpoint => _endpoint.isNotEmpty ? _endpoint : 'https://$_effectiveAccountId.r2.cloudflarestorage.com';
 
   static String get _tryKeysAccountId {
     try { return keys.kR2AccountId; } catch (_) { return ''; }
@@ -54,9 +51,9 @@ class R2StorageService {
     
     final host = '$_effectiveAccountId.r2.cloudflarestorage.com';
     final canonicalUri = '/$_effectiveBucket/$path';
-    final canonicalQueryString = '';
+    const canonicalQueryString = '';
     final canonicalHeaders = 'host:$host\nx-amz-content-sha256:$payloadHash\nx-amz-date:$amzDate\n';
-    final signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+    const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
     
     final canonicalRequest = 'PUT\n$canonicalUri\n$canonicalQueryString\n$canonicalHeaders\n$signedHeaders\n$payloadHash';
     final credentialScope = '$dateStamp/auto/s3/aws4_request';

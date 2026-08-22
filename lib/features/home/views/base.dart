@@ -15,6 +15,7 @@ import 'package:whatsapp_clone/features/home/data/repositories/contact_repositor
 import 'package:whatsapp_clone/shared/repositories/download_service.dart';
 import 'package:whatsapp_clone/shared/repositories/firebase_firestore.dart';
 import 'package:whatsapp_clone/features/home/views/contacts.dart';
+import 'package:whatsapp_clone/features/home/views/profile.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
 import 'package:whatsapp_clone/shared/repositories/isar_db.dart';
 import 'package:whatsapp_clone/shared/repositories/push_notifications.dart';
@@ -34,6 +35,7 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+  late User _currentUser;
   late final StreamSubscription<List<Message>> messageListener;
   late TabController _tabController;
   late List<Widget> _floatingButtons;
@@ -43,12 +45,12 @@ class _HomePageState extends ConsumerState<HomePage>
     switch (state) {
       case AppLifecycleState.resumed:
         ref.read(firebaseFirestoreRepositoryProvider).setActivityStatus(
-            userId: widget.user.id,
+            userId: _currentUser.id,
             statusValue: UserActivityStatus.online.value);
         break;
       default:
         ref.read(firebaseFirestoreRepositoryProvider).setActivityStatus(
-            userId: widget.user.id,
+            userId: _currentUser.id,
             statusValue: UserActivityStatus.offline.value);
         break;
     }
@@ -57,14 +59,15 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   void initState() {
+    _currentUser = widget.user;
     final firestore = ref.read(firebaseFirestoreRepositoryProvider);
     firestore.setActivityStatus(
-      userId: widget.user.id,
+      userId: _currentUser.id,
       statusValue: UserActivityStatus.online.value,
     );
 
     // Restore / sync last 2 days messages from cloud
-    _syncLast2DaysMessages(widget.user.id);
+    _syncLast2DaysMessages(_currentUser.id);
 
     messageListener = firestore.getChatStream(widget.user.id).listen(
       (messages) async {
@@ -254,44 +257,24 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
-  void _showProfileDialog() {
-    final colorTheme = Theme.of(context).custom.colorTheme;
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Profile & Settings'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundImage: CachedNetworkImageProvider(widget.user.avatarUrl),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              widget.user.name,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              widget.user.phone.getFormattedNumber(),
-              style: TextStyle(color: colorTheme.greyColor),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Hey there! I am using WhatsUp.',
-              style: TextStyle(fontSize: 13, color: colorTheme.greyColor),
-            ),
-          ],
+  void _openProfilePage() async {
+    final updatedUser = await Navigator.of(context).push<User>(
+      MaterialPageRoute(
+        builder: (context) => ProfilePage(
+          user: _currentUser,
+          onProfileUpdated: (user) {
+            setState(() {
+              _currentUser = user;
+            });
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('CLOSE'),
-          ),
-        ],
       ),
     );
+    if (updatedUser != null && mounted) {
+      setState(() {
+        _currentUser = updatedUser;
+      });
+    }
   }
 
   @override
@@ -327,11 +310,11 @@ class _HomePageState extends ConsumerState<HomePage>
                 if (value == 'logout') {
                   _showLogoutDialog();
                 } else if (value == 'profile') {
-                  _showProfileDialog();
+                  _openProfilePage();
                 } else if (value == 'new_group') {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => ContactsPage(user: widget.user),
+                      builder: (context) => ContactsPage(user: _currentUser),
                     ),
                   );
                 }
@@ -380,7 +363,7 @@ class _HomePageState extends ConsumerState<HomePage>
             parent: AlwaysScrollableScrollPhysics(),
           ),
           children: [
-            RecentChatsBody(user: widget.user),
+            RecentChatsBody(user: _currentUser),
             const Center(
               child: Text('Coming soon'),
             ),
