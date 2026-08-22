@@ -1,9 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:whatsapp_clone/features/auth/data/repositories/auth_repository.dart';
 import 'package:whatsapp_clone/shared/repositories/isar_db.dart';
 import 'package:whatsapp_clone/shared/utils/abc.dart';
 import 'package:whatsapp_clone/shared/utils/shared_pref.dart';
@@ -39,22 +37,29 @@ class WhatsApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp(
-      title: "WhatsUp",
-      initialRoute: '/',
-      theme: ref.read(lightThemeProvider),
-      darkTheme: ref.read(darkThemeProvider),
-      themeMode: ThemeMode.system,
-      debugShowCheckedModeBanner: false,
-      home: Builder(
-        builder: (BuildContext context) {
-          final user = getCurrentUser();
-          if (user != null) {
-            return HomePage(user: user);
-          }
-          return const WelcomePage();
-        },
-      ),
+    return ScreenUtilInit(
+      designSize: const Size(360, 800),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return MaterialApp(
+          title: "WhatsUp",
+          initialRoute: '/',
+          theme: ref.read(lightThemeProvider),
+          darkTheme: ref.read(darkThemeProvider),
+          themeMode: ThemeMode.system,
+          debugShowCheckedModeBanner: false,
+          home: Builder(
+            builder: (BuildContext context) {
+              final user = getCurrentUser();
+              if (user != null) {
+                return HomePage(user: user);
+              }
+              return const WelcomePage();
+            },
+          ),
+        );
+      },
     );
   }
 }
