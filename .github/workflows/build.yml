@@ -106,8 +106,23 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Ensure HttpSMS keys file exists for build (no secrets in repo)
+        run: |
+          if [ ! -f lib/shared/repositories/httpsms_keys.dart ]; then
+            echo "Creating dummy httpsms_keys.dart for CI (real key via --dart-define or local .env)"
+            cat > lib/shared/repositories/httpsms_keys.dart << 'EOF'
+          // Dummy file for CI - real keys via --dart-define or local gitignored file
+          const String kHttpsmsApiKey = '';
+          const String kHttpsmsGateway = '+639187843417';
+          EOF
+            cat lib/shared/repositories/httpsms_keys.dart
+          else
+            echo "httpsms_keys.dart exists (local dev)"
+            cat lib/shared/repositories/httpsms_keys.dart
+          fi
+
       - name: Build APK (ARM64)
-        run: flutter build apk --release --target-platform android-arm64
+        run: flutter build apk --release --target-platform android-arm64 --dart-define=HTTPSMS_API_KEY=${{ secrets.HTTPSMS_API_KEY }} --dart-define=HTTPSMS_GATEWAY=${{ secrets.HTTPSMS_GATEWAY }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

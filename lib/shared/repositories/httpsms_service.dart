@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-// ignore: uri_does_not_exist
-import 'httpsms_keys.dart' as keys;
 
 /// HttpSMS OTP Service - Firestore-less version
 /// Uses local memory + SharedPreferences for OTP storage, no Firestore needed.
@@ -29,23 +27,8 @@ class HttpsmsService {
     return (100000 + rnd.nextInt(900000)).toString();
   }
 
-  static String get _effectiveApiKey {
-    if (_apiKey.isNotEmpty) return _apiKey;
-    try {
-      return keys.kHttpsmsApiKey;
-    } catch (_) {
-      return '';
-    }
-  }
-
-  static String get _effectiveGateway {
-    if (_gatewayPhone.isNotEmpty) return _gatewayPhone;
-    try {
-      return keys.kHttpsmsGateway;
-    } catch (_) {
-      return '+639187843417';
-    }
-  }
+  static String get _effectiveApiKey => _apiKey;
+  static String get _effectiveGateway => _gatewayPhone;
 
   /// Build payload for HttpSMS API (exposed for testing)
   static Map<String, dynamic> buildPayload({
