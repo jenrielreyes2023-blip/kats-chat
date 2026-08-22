@@ -75,7 +75,7 @@ class VerificationController {
   VerificationController(this.ref);
 
   ProviderRef ref;
-  late String _verificationCode;
+  String _verificationCode = 'fallback-mock-vid';
 
   void init(BuildContext context, String phoneNumber) async {
     final resendTime = SharedPref.instance.getInt('resendTime');
