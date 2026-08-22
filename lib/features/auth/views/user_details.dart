@@ -31,7 +31,7 @@ class UserProfileCreationPage extends ConsumerStatefulWidget {
 class _UserProfileCreationPageState
     extends ConsumerState<UserProfileCreationPage> {
   File? userImg;
-  double keyboardHeight = SharedPref.instance.getDouble('keyboardHeight')!;
+  double keyboardHeight = SharedPref.instance.getDouble('keyboardHeight') ?? 270.0;
   bool showEmojiPicker = false;
   bool isKeyboardVisible = false;
   late final StreamSubscription<bool> _keyboardSubscription;

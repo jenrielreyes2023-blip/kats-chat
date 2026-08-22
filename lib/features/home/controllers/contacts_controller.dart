@@ -8,6 +8,7 @@ import 'package:whatsapp_clone/features/home/data/repositories/contact_repositor
 import 'package:whatsapp_clone/shared/models/contact.dart';
 import 'package:whatsapp_clone/features/chat/views/chat.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
+import 'package:whatsapp_clone/shared/repositories/firebase_firestore.dart';
 import 'package:whatsapp_clone/shared/repositories/isar_db.dart';
 import 'package:whatsapp_clone/shared/utils/abc.dart';
 
@@ -65,9 +66,31 @@ class ContactPickerController extends StateNotifier<List<Contact>> {
   }
 
   void pickContact(BuildContext context, User sender, Contact contact) async {
-    final receiver = await IsarDb.getUserById(contact.userId!);
+    if (contact.userId == null) return;
 
-    if (!mounted) return;
+    User? receiver = await IsarDb.getUserById(contact.userId!);
+    if (receiver == null) {
+      try {
+        receiver = await ref
+            .read(firebaseFirestoreRepositoryProvider)
+            .getUserById(contact.userId!);
+      } catch (_) {}
+    }
+
+    receiver ??= User(
+      id: contact.userId!,
+      name: contact.displayName,
+      avatarUrl: contact.avatarUrl ??
+          'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+      phone: Phone(
+        code: '',
+        number: contact.phoneNumber,
+        formattedNumber: contact.phoneNumber,
+      ),
+      activityStatus: UserActivityStatus.offline,
+    );
+
+    if (!context.mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

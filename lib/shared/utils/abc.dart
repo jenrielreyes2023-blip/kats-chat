@@ -156,7 +156,7 @@ Future<bool> hasPermission(Permission permission) async {
 }
 
 double getKeyboardHeight() {
-  return SharedPref.instance.getDouble('keyboardHeight')!;
+  return SharedPref.instance.getDouble('keyboardHeight') ?? 270.0;
 }
 
 Future<(double, double)> getImageDimensions(File imageFile) async {

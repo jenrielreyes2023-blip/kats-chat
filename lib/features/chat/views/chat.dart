@@ -214,7 +214,8 @@ class ChatInputContainer extends ConsumerStatefulWidget {
 
 class _ChatInputContainerState extends ConsumerState<ChatInputContainer>
     with WidgetsBindingObserver {
-  double keyboardHeight = SharedPref.instance.getDouble('keyboardHeight')!;
+  double keyboardHeight =
+      SharedPref.instance.getDouble('keyboardHeight') ?? 270.0;
   bool isKeyboardVisible = false;
   late final StreamSubscription<bool> _keyboardSubscription;
 
@@ -533,20 +534,24 @@ class _ChatStreamState extends ConsumerState<ChatStream> {
 
   void scrollToUnreadBanner() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      Scrollable.ensureVisible(
-        bannerKey.currentContext!,
-        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
-      );
+      if (bannerKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          bannerKey.currentContext!,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        );
+      }
     });
   }
 
   void scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      scrollController.animateTo(
-        scrollController.position.minScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-      );
+      if (scrollController.hasClients) {
+        scrollController.animateTo(
+          scrollController.position.minScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      }
     });
   }
 
@@ -611,7 +616,7 @@ class _ChatStreamState extends ConsumerState<ChatStream> {
                   ),
                 ],
                 SliverList.builder(
-                  itemCount: messages.length - unreadCount,
+                  itemCount: (messages.length - unreadCount).clamp(0, messages.length),
                   itemBuilder: (context, index) {
                     index = index + unreadCount;
                     return buildMessageCard(index, messages);
