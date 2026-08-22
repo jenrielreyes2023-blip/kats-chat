@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:whatsapp_clone/features/chat/views/chat.dart';
 import 'package:whatsapp_clone/features/home/controllers/contacts_controller.dart';
 import 'package:whatsapp_clone/shared/models/contact.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
