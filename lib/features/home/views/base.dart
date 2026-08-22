@@ -109,10 +109,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
     _floatingButtons = [
       FloatingActionButton(
-        onPressed: () async {
-          if (!await hasPermission(Permission.contacts)) return;
-          if (!mounted) return;
-
+        onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => ContactsPage(

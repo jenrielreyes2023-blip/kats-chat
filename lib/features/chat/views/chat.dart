@@ -58,22 +58,22 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final self = widget.self;
     final other = widget.other;
 
-    return Platform.isAndroid
-        ? PopScope(
-            canPop: false,
-            onPopInvoked: (didPop) async {
-              if (!ref.read(chatControllerProvider).showEmojiPicker) {
-                Navigator.pop(context);
-                return;
-              }
+    final showEmojiPicker = ref.watch(
+      chatControllerProvider.select((chatState) => chatState.showEmojiPicker),
+    );
 
-              ref
-                  .read(chatControllerProvider.notifier)
-                  .setShowEmojiPicker(false);
-            },
-            child: _build(self, other, context),
-          )
-        : _build(self, other, context);
+    return PopScope(
+      canPop: !showEmojiPicker,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (showEmojiPicker) {
+          ref
+              .read(chatControllerProvider.notifier)
+              .setShowEmojiPicker(false);
+        }
+      },
+      child: _build(self, other, context),
+    );
   }
 
   Widget _build(User self, User other, BuildContext context) {

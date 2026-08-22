@@ -46,19 +46,13 @@ class WhatsApp extends ConsumerWidget {
       darkTheme: ref.read(darkThemeProvider),
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
-      home: StreamBuilder<auth.User?>(
-        stream: ref.read(authRepositoryProvider).auth.authStateChanges(),
-        builder: (BuildContext context, snapshot) {
-          if (!snapshot.hasData) {
-            return const WelcomePage();
-          }
-
+      home: Builder(
+        builder: (BuildContext context) {
           final user = getCurrentUser();
-          if (user == null) {
-            return const WelcomePage();
+          if (user != null) {
+            return HomePage(user: user);
           }
-
-          return HomePage(user: user);
+          return const WelcomePage();
         },
       ),
     );
