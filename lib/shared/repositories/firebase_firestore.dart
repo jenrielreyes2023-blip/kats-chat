@@ -251,15 +251,24 @@ class FirebaseFirestoreRepo {
   }
 
   Future<void> setFcmToken(String token) async {
-    final user = jsonDecode(SharedPref.instance.getString('user')!);
-    return firestore
-        .collection('fcmTokens')
-        .doc(user['id'])
-        .set({'token': token});
+    final userStr = SharedPref.instance.getString('user');
+    if (userStr == null) return;
+    try {
+      final user = jsonDecode(userStr);
+      return firestore
+          .collection('fcmTokens')
+          .doc(user['id'])
+          .set({'token': token});
+    } catch (_) {}
   }
 
-  Future<String> getFcmToken(String userId) async {
-    final docSnap = await firestore.collection('fcmTokens').doc(userId).get();
-    return docSnap.data()!['token'];
+  Future<String?> getFcmToken(String userId) async {
+    try {
+      final docSnap = await firestore.collection('fcmTokens').doc(userId).get();
+      if (docSnap.exists && docSnap.data() != null) {
+        return docSnap.data()?['token'] as String?;
+      }
+    } catch (_) {}
+    return null;
   }
 }

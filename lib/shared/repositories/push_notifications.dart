@@ -29,35 +29,41 @@ class PushNotificationsRepo {
   }
 
   Future<void> sendPushNotification(Message message) async {
-    final token = await ref
-        .read(firebaseFirestoreRepositoryProvider)
-        .getFcmToken(message.receiverId);
+    try {
+      final token = await ref
+          .read(firebaseFirestoreRepositoryProvider)
+          .getFcmToken(message.receiverId);
 
-    const String url =
-        'https://wa_notifications-1-q2097095.deta.app/new_message';
-    final Map<String, String> headers = {"Content-Type": "application/json"};
+      if (token == null || token.isEmpty) return;
 
-    String messageContent = message.content;
-    if (message.attachment != null) {
-      messageContent = "Sent an attachment";
-    }
+      const String url =
+          'https://embassy-leeds-latest-alice.trycloudflare.com/new_message';
+      final Map<String, String> headers = {"Content-Type": "application/json"};
 
-    final user = getCurrentUser()!;
-    final String messageJson = jsonEncode(
-      {
-        'token': token,
-        'messageId': message.id,
-        'messageContent': messageContent,
-        'authorId': user.id,
-        'authorName': user.name,
-      },
-    );
+      String messageContent = message.content;
+      if (message.attachment != null) {
+        messageContent = "Sent an attachment";
+      }
 
-    await post(
-      Uri.parse(url),
-      headers: headers,
-      body: messageJson,
-    );
+      final user = getCurrentUser();
+      if (user == null) return;
+
+      final String messageJson = jsonEncode(
+        {
+          'token': token,
+          'messageId': message.id,
+          'messageContent': messageContent,
+          'authorId': user.id,
+          'authorName': user.name,
+        },
+      );
+
+      await post(
+        Uri.parse(url),
+        headers: headers,
+        body: messageJson,
+      ).timeout(const Duration(seconds: 5));
+    } catch (_) {}
   }
 }
 
