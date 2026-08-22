@@ -5,6 +5,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:whatsapp_clone/features/auth/data/repositories/auth_repository.dart';
+import 'package:whatsapp_clone/features/auth/views/welcome.dart';
 import 'package:whatsapp_clone/features/chat/models/attachement.dart';
 import 'package:whatsapp_clone/features/chat/models/message.dart';
 import 'package:whatsapp_clone/features/chat/models/recent_chat.dart';
@@ -17,6 +19,7 @@ import 'package:whatsapp_clone/shared/models/user.dart';
 import 'package:whatsapp_clone/shared/repositories/isar_db.dart';
 import 'package:whatsapp_clone/shared/repositories/push_notifications.dart';
 import 'package:whatsapp_clone/shared/utils/abc.dart';
+import 'package:whatsapp_clone/shared/utils/shared_pref.dart';
 import 'package:whatsapp_clone/theme/theme.dart';
 import '../../../shared/utils/storage_paths.dart';
 import '../../../theme/color_theme.dart';
@@ -182,6 +185,80 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Log out'),
+        content: const Text('Sigurado ka bang nais mong mag-log out sa WhatsUp?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await ref.read(authRepositoryProvider).auth.signOut();
+              } catch (_) {}
+              await SharedPref.instance.remove('user');
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const WelcomePage()),
+                (route) => false,
+              );
+            },
+            child: const Text(
+              'LOG OUT',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProfileDialog() {
+    final colorTheme = Theme.of(context).custom.colorTheme;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Profile & Settings'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 40,
+              backgroundImage: CachedNetworkImageProvider(widget.user.avatarUrl),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              widget.user.name,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              widget.user.phone.getFormattedNumber(),
+              style: TextStyle(color: colorTheme.greyColor),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Hey there! I am using WhatsUp.',
+              style: TextStyle(fontSize: 13, color: colorTheme.greyColor),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('CLOSE'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).custom.textTheme;
@@ -208,11 +285,42 @@ class _HomePageState extends ConsumerState<HomePage>
                 Icons.search,
               ),
             ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.more_vert,
-              ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              color: colorTheme.appBarColor,
+              onSelected: (value) {
+                if (value == 'logout') {
+                  _showLogoutDialog();
+                } else if (value == 'profile') {
+                  _showProfileDialog();
+                } else if (value == 'new_group') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ContactsPage(user: widget.user),
+                    ),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'new_group',
+                  child: Text('New group'),
+                ),
+                const PopupMenuItem(
+                  value: 'profile',
+                  child: Text('Profile / Settings'),
+                ),
+                const PopupMenuItem(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text('Log out', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
           bottom: TabBar(
