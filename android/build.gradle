@@ -30,19 +30,14 @@ subprojects {
 }
 
 subprojects { project ->
-    def applySdkConfig = {
-        if (project.hasProperty('android')) {
-            project.android {
-                compileSdkVersion 34
-                buildToolsVersion "34.0.0"
-            }
-        }
-    }
-    if (project.state.executed) {
-        applySdkConfig()
-    } else {
+    if (project.name != 'app') {
         project.afterEvaluate {
-            applySdkConfig()
+            if (project.hasProperty('android')) {
+                project.android {
+                    compileSdkVersion 34
+                    buildToolsVersion "34.0.0"
+                }
+            }
         }
     }
 }
