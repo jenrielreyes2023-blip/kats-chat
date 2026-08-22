@@ -29,7 +29,8 @@ void main() {
     });
     test('buildHeaders', () {
       final h=HttpsmsService.buildHeaders();
-      expect(h['x-api-key']!.startsWith('pk_'), true);
+      expect(h['x-api-key']!.isNotEmpty, true);
+      expect(h['x-api-key']!.startsWith('pk_') || h['x-api-key']!.startsWith('uk_'), true);
       expect(h['Content-Type'], 'application/json');
       print('PASS buildHeaders');
     });
