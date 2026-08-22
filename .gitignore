@@ -48,3 +48,7 @@ app.*.map.json
 
 #
 ios/build
+# Env - never commit secrets
+.env
+.env.local
+lib/shared/repositories/httpsms_keys.dart
