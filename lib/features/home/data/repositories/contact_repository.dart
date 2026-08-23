@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:whatsapp_clone/shared/models/contact.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
+import 'package:whatsapp_clone/shared/utils/abc.dart';
 
 final contactsRepositoryProvider = Provider((ref) => ContactsRepository(ref));
 
@@ -28,13 +29,7 @@ class ContactsRepository {
 
       for (var contact in contacts) {
         for (var phone in contact.phones) {
-          String phoneNumberWithoutFormatting = phone.number
-              .replaceAll(' ', '')
-              .replaceAll('-', '')
-              .replaceAll('(', '')
-              .replaceAll(')', '');
-
-          if (phoneNumberWithoutFormatting.contains(phoneNumber)) {
+          if (isPhoneMatch(phone.number, phoneNumber)) {
             return Contact(
               contactId: contact.id,
               displayName: contact.displayName,

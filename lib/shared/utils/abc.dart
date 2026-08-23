@@ -176,3 +176,21 @@ Future<(double, double)> getVideoDimensions(File videoFile) async {
 
   return (videoSize.width, videoSize.height);
 }
+
+bool isPhoneMatch(String? p1, String? p2) {
+  if (p1 == null || p2 == null) return false;
+  final digits1 = p1.replaceAll(RegExp(r'\D'), '');
+  final digits2 = p2.replaceAll(RegExp(r'\D'), '');
+  if (digits1.isEmpty || digits2.isEmpty) return false;
+  if (digits1 == digits2) return true;
+  final len1 = digits1.length;
+  final len2 = digits2.length;
+  final minLen = len1 < len2 ? len1 : len2;
+  if (minLen >= 9) {
+    final sub1 = digits1.substring(len1 - 9);
+    final sub2 = digits2.substring(len2 - 9);
+    return sub1 == sub2;
+  }
+  return false;
+}
+

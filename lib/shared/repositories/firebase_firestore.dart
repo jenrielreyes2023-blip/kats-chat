@@ -227,27 +227,64 @@ class FirebaseFirestoreRepo {
     );
   }
 
+  Future<List<User>> getAllRegisteredUsers() async {
+    try {
+      final snap = await firestore.collection('users').get();
+      return snap.docs
+          .map((doc) => User.fromMap(doc.data()))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   Future<User?> getUserByPhone(String phoneNumber) async {
-    phoneNumber = phoneNumber
+    final cleanPhone = phoneNumber
         .replaceAll(' ', '')
         .replaceAll('-', '')
         .replaceAll('(', '')
         .replaceAll(')', '');
 
-    QuerySnapshot<Map<String, dynamic>> snap;
-    if (phoneNumber.startsWith('+')) {
-      snap = await firestore
+    try {
+      // 1. Try rawNumber with '+'
+      final withPlus = cleanPhone.startsWith('+') ? cleanPhone : '+$cleanPhone';
+      var snap = await firestore
           .collection('users')
-          .where('phone.rawNumber', isEqualTo: phoneNumber)
+          .where('phone.rawNumber', isEqualTo: withPlus)
+          .limit(1)
           .get();
-    } else {
-      snap = await firestore
-          .collection('users')
-          .where('phone.number', isEqualTo: phoneNumber)
-          .get();
-    }
+      if (snap.docs.isNotEmpty) return User.fromMap(snap.docs.first.data());
 
-    return snap.size == 0 ? null : User.fromMap(snap.docs[0].data());
+      // 2. Try rawNumber without '+'
+      final withoutPlus = cleanPhone.replaceFirst('+', '');
+      snap = await firestore
+          .collection('users')
+          .where('phone.rawNumber', isEqualTo: withoutPlus)
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) return User.fromMap(snap.docs.first.data());
+
+      // 3. Try number directly
+      snap = await firestore
+          .collection('users')
+          .where('phone.number', isEqualTo: cleanPhone)
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) return User.fromMap(snap.docs.first.data());
+
+      // 4. Try stripping leading 0 (e.g. 0918... -> 918...)
+      if (cleanPhone.startsWith('0')) {
+        final stripped = cleanPhone.substring(1);
+        snap = await firestore
+            .collection('users')
+            .where('phone.number', isEqualTo: stripped)
+            .limit(1)
+            .get();
+        if (snap.docs.isNotEmpty) return User.fromMap(snap.docs.first.data());
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   Future<void> setFcmToken(String token) async {

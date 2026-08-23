@@ -289,46 +289,76 @@ class IsarDb {
 
   static Future<void> addContacts() async {
     final providerContainer = ProviderContainer();
-    final self = getCurrentUser()!;
+    final self = getCurrentUser();
+    if (self == null) return;
 
-    var contacts = await providerContainer
-        .read(contactsRepositoryProvider)
-        .getContacts(self: self);
+    // 1. Get all registered users from Firestore
+    List<User> allRegisteredUsers = [];
+    try {
+      allRegisteredUsers = await providerContainer
+          .read(firebaseFirestoreRepositoryProvider)
+          .getAllRegisteredUsers();
+    } catch (_) {}
 
-    final users = await Future.wait(
-      contacts.map(
-        (e) => providerContainer
-            .read(firebaseFirestoreRepositoryProvider)
-            .getUserByPhone(e.phoneNumber),
-      ),
-    );
+    final otherRegisteredUsers = allRegisteredUsers
+        .where((u) => u.id != self.id && u.id != 'whatsup_bot')
+        .toList();
 
-    for (var i = 0; i < contacts.length; i++) {
-      final user = users[i];
-      var contact = contacts[i];
+    // 2. Get local phone contacts
+    var localContacts = <Contact>[];
+    try {
+      localContacts = await providerContainer
+          .read(contactsRepositoryProvider)
+          .getContacts(self: self);
+    } catch (_) {}
 
-      if (user != null && user.id != self.id) {
-        contact = Contact(
-          userId: user.id,
-          avatarUrl: user.avatarUrl,
-          contactId: contact.contactId,
-          displayName: contact.displayName,
-          phoneNumber: contact.phoneNumber,
-        );
-      } else {
-        contact = Contact(
-          contactId: contact.contactId,
-          displayName: contact.displayName,
-          phoneNumber: contact.phoneNumber,
-        );
+    final finalContacts = <Contact>[];
+    final matchedLocalContactIds = <String>{};
+
+    // 3. For every registered user on WhatsUp, match with local contact or add as registered user
+    for (final regUser in otherRegisteredUsers) {
+      Contact? matchedLocal;
+      for (final lc in localContacts) {
+        if (isPhoneMatch(lc.phoneNumber, regUser.phone.rawNumber) ||
+            isPhoneMatch(lc.phoneNumber, regUser.phone.number) ||
+            isPhoneMatch(lc.phoneNumber, regUser.phone.formattedNumber)) {
+          matchedLocal = lc;
+          matchedLocalContactIds.add(lc.contactId);
+          break;
+        }
       }
 
-      contacts[i] = contact;
+      finalContacts.add(
+        Contact(
+          userId: regUser.id,
+          avatarUrl: regUser.avatarUrl,
+          contactId: matchedLocal?.contactId ?? 'cloud_${regUser.id}',
+          displayName: matchedLocal?.displayName ??
+              (regUser.name.isNotEmpty
+                  ? regUser.name
+                  : regUser.phone.getFormattedNumber()),
+          phoneNumber: matchedLocal?.phoneNumber ??
+              regUser.phone.getFormattedNumber(),
+        ),
+      );
+    }
+
+    // 4. For remaining local contacts that are not registered on WhatsUp, add to "Invite" list
+    for (final lc in localContacts) {
+      if (!matchedLocalContactIds.contains(lc.contactId)) {
+        finalContacts.add(
+          Contact(
+            contactId: lc.contactId,
+            displayName: lc.displayName,
+            phoneNumber: lc.phoneNumber,
+          ),
+        );
+      }
     }
 
     await isar.writeTxn(() async {
-      await isar.contacts.putAll(contacts);
-      await isar.users.putAll(users.nonNulls.toList());
+      await isar.contacts.putAll(finalContacts);
+      await isar.users.putAll(otherRegisteredUsers);
     });
   }
 

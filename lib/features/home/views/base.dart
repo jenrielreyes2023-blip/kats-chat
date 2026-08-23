@@ -561,6 +561,30 @@ class HomePageContactsList extends StatelessWidget {
                 if (currentUser == null) return;
                 Navigator.of(context).push(
                   MaterialPageRoute(
+                    builder: (context) => ContactsPage(user: currentUser),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.chat),
+              label: const Text(
+                'Mag-start ng Bagong Chat',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colorTheme.textColor1,
+                side: BorderSide(color: colorTheme.greenColor.withOpacity(0.5)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              onPressed: () {
+                if (currentUser == null) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute(
                     builder: (context) => ChatPage(
                       self: currentUser,
                       other: botUser,
@@ -572,8 +596,7 @@ class HomePageContactsList extends StatelessWidget {
               },
               icon: const Icon(Icons.smart_toy_outlined),
               label: const Text(
-                'Subukan ang Chat Interface',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'Subukan ang WhatsUp Assistant 🤖',
               ),
             ),
           ],
