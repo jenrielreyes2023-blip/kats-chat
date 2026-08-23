@@ -23,6 +23,35 @@ class PushNotificationsRepo {
   Future<void> init({
     required Future<void> Function(RemoteMessage) onMessageOpenedApp,
   }) async {
+    try {
+      // 1. Request runtime notification permissions (required on Android 13+ & iOS)
+      final settings = await instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+
+      // 2. Set foreground presentation options to display alerts/sounds even when app is open
+      await instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      // 3. Fetch and register initial FCM token immediately
+      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional) {
+        final token = await instance.getToken();
+        if (token != null) {
+          handleTokenRefresh(token, ref);
+        }
+      }
+    } catch (_) {}
+
     FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(onMessageOpenedApp);
     instance.onTokenRefresh.listen((token) => handleTokenRefresh(token, ref));
