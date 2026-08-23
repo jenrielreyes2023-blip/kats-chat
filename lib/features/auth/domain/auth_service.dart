@@ -35,7 +35,7 @@ class AuthController {
     String phoneNumber,
     void Function(String code) onCodeSent,
   ) async {
-    await authRepository.signInWithPhone(
+    await authRepository.sendOtp(
       context,
       ref,
       phoneNumber,
@@ -83,7 +83,10 @@ class AuthController {
       activityStatus: UserActivityStatus.online,
     );
 
-    await authRepository.registerUser(user.toMap());
+    final success = await authRepository.registerUser(user.toMap());
+    if (!success) {
+      throw Exception('Failed to register user to Firestore');
+    }
     return user;
   }
 }

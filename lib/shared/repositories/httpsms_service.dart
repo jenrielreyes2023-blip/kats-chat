@@ -2,15 +2,11 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-// Local keys file - gitignored, CI creates dummy if missing
-// ignore: uri_does_not_exist
-import 'httpsms_keys.dart' as keys;
-
 /// HttpSMS OTP Service - Firestore-less version
 /// Uses local memory + SharedPreferences for OTP storage, no Firestore needed.
 /// Gateway credentials configured here.
 class HttpsmsService {
-  // Gateway credentials - set via --dart-define else fallback to env file (never commit raw key)
+  // Gateway credentials - configured via --dart-define
   // Provide at build/run: flutter run --dart-define=HTTPSMS_API_KEY=pk_... --dart-define=HTTPSMS_GATEWAY=+639...
   static const String _apiKey = String.fromEnvironment('HTTPSMS_API_KEY', defaultValue: '');
   static const String _gatewayPhone = String.fromEnvironment('HTTPSMS_GATEWAY', defaultValue: '+639187843417');
@@ -30,24 +26,6 @@ class HttpsmsService {
     return (100000 + rnd.nextInt(900000)).toString();
   }
 
-  static String get _effectiveApiKey {
-    if (_apiKey.isNotEmpty) return _apiKey;
-    try {
-      return keys.kHttpsmsApiKey;
-    } catch (_) {
-      return '';
-    }
-  }
-
-  static String get _effectiveGateway {
-    if (_gatewayPhone.isNotEmpty) return _gatewayPhone;
-    try {
-      return keys.kHttpsmsGateway;
-    } catch (_) {
-      return '+639187843417';
-    }
-  }
-
   /// Build payload for HttpSMS API (exposed for testing)
   static Map<String, dynamic> buildPayload({
     required String toPhone,
@@ -56,7 +34,7 @@ class HttpsmsService {
     final message =
         'WhatsUp Verification Code: $otp\n\nThis code is valid for 5 minutes. For your security, please do not share this code with anyone. If you did not request this code, please ignore this message.';
     return {
-      'from': _effectiveGateway,
+      'from': _gatewayPhone,
       'to': toPhone,
       'content': message,
     };
@@ -65,7 +43,7 @@ class HttpsmsService {
   /// Build headers for HttpSMS API (exposed for testing)
   static Map<String, String> buildHeaders() {
     return {
-      'x-api-key': _effectiveApiKey,
+      'x-api-key': _apiKey,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };

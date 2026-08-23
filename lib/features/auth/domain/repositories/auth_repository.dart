@@ -7,11 +7,11 @@ abstract class AuthenticationRepository {
     String smsCode,
   );
 
-  Future<void> signInWithPhone(
+  Future<void> sendOtp(
     BuildContext context,
     ProviderRef ref,
     String phoneNumber,
-    void Function(String code) onCodeSent
+    void Function(String code) onCodeSent,
   );
 
   Future<bool> registerUser(Map<String, dynamic> userData);

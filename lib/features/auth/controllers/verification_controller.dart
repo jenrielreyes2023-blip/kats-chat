@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:whatsapp_clone/features/auth/data/repositories/auth_repository.dart';
@@ -157,7 +156,9 @@ class VerificationController {
             );
 
             Future.delayed(const Duration(seconds: 2), () {
-              Navigator.of(context).pop();
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
             });
           }
 
@@ -224,9 +225,7 @@ class VerificationController {
                     if (currentUid != null) {
                       existingUser = await firestoreRepo.getUserById(currentUid);
                     }
-                    if (existingUser == null) {
-                      existingUser = await firestoreRepo.getUserByPhone(phone.rawNumber);
-                    }
+                    existingUser ??= await firestoreRepo.getUserByPhone(phone.rawNumber);
                     if (existingUser == null && phone.number != null) {
                       existingUser = await firestoreRepo.getUserByPhone(phone.number!);
                     }
@@ -260,21 +259,24 @@ class VerificationController {
                   );
                 });
               } else if (snapshot.hasError) {
-                text = 'Oops! an error occured';
-
-                if (snapshot.error.runtimeType == FirebaseAuthException) {
-                  final FirebaseAuthException error =
-                      snapshot.error as FirebaseAuthException;
-
-                  final msgs = {
-                    'invalid-verification-code': 'Invalid OTP!',
-                    'network-request-failed': 'Network error!'
-                  };
-
-                  if (msgs.containsKey(error.code)) {
-                    text = msgs[error.code];
+                String errorMsg = 'Oops! An error occurred';
+                final error = snapshot.error;
+                if (error != null) {
+                  final errStr = error.toString();
+                  if (errStr.contains('OTP not found')) {
+                    errorMsg = 'OTP not found. Please request a new code.';
+                  } else if (errStr.contains('OTP expired')) {
+                    errorMsg = 'OTP expired. Please request a new code.';
+                  } else if (errStr.contains('Invalid OTP')) {
+                    errorMsg = 'Invalid OTP!';
+                  } else {
+                    final cleanMsg = errStr.replaceAll('Exception: ', '').trim();
+                    if (cleanMsg.isNotEmpty) {
+                      errorMsg = cleanMsg;
+                    }
                   }
                 }
+                text = errorMsg;
 
                 widget = Icon(
                   Icons.cancel,
@@ -283,7 +285,9 @@ class VerificationController {
                 );
 
                 Future.delayed(const Duration(seconds: 2), () {
-                  Navigator.of(context).pop();
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
                 });
               }
 

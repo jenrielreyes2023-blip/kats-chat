@@ -97,44 +97,18 @@ jobs:
             echo "No key.properties found, generating debug keystore for CI..."
             keytool -genkey -v -keystore android/app/debug-ci.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=CI, OU=CI, O=CI, L=CI, S=CI, C=US"
             printf "storePassword=android\nkeyPassword=android\nkeyAlias=androiddebugkey\nstoreFile=debug-ci.keystore\n" > android/key.properties
-            cat android/key.properties
           else
             echo "key.properties exists"
-            cat android/key.properties
           fi
 
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Ensure HttpSMS keys file exists for build (no secrets in repo)
-        run: |
-          if [ ! -f lib/shared/repositories/httpsms_keys.dart ]; then
-            echo "Creating dummy httpsms_keys.dart for CI (real key via --dart-define or local .env)"
-            cat > lib/shared/repositories/httpsms_keys.dart << 'EOF'
-          // Dummy file for CI - real keys via --dart-define or local gitignored file
-          const String kHttpsmsApiKey = '';
-          const String kHttpsmsGateway = '+639187843417';
-          EOF
-            cat lib/shared/repositories/httpsms_keys.dart
-          else
-            echo "httpsms_keys.dart exists (local dev)"
-            cat lib/shared/repositories/httpsms_keys.dart
-          fi
-          if [ ! -f lib/shared/repositories/r2_keys.dart ]; then
-            echo "Creating dummy r2_keys.dart for CI (real keys via --dart-define)"
-            cat > lib/shared/repositories/r2_keys.dart << 'EOF'
-          // Dummy file for CI - real keys via --dart-define
-          const String kR2AccountId = '';
-          const String kR2AccessKeyId = '';
-          const String kR2SecretAccessKey = '';
-          const String kR2Bucket = 'whatsup-uploads';
-          const String kR2PublicUrl = '';
-          EOF
-            cat lib/shared/repositories/r2_keys.dart
-          else
-            echo "r2_keys.dart exists (local dev)"
-            cat lib/shared/repositories/r2_keys.dart
-          fi
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
 
       - name: Build APK (ARM64)
         run: flutter build apk --release --target-platform android-arm64 --dart-define=HTTPSMS_API_KEY=${{ secrets.HTTPSMS_API_KEY }} --dart-define=HTTPSMS_GATEWAY=${{ secrets.HTTPSMS_GATEWAY }} --dart-define=R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }} --dart-define=R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }} --dart-define=R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }} --dart-define=R2_BUCKET=${{ secrets.R2_BUCKET }} --dart-define=R2_PUBLIC_URL=${{ secrets.R2_PUBLIC_URL }} --dart-define=R2_ENDPOINT=${{ secrets.R2_ENDPOINT }}

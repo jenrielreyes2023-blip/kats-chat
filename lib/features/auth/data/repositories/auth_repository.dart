@@ -44,7 +44,7 @@ class FirebaseAuthRepository implements AuthenticationRepository {
   }
 
   @override
-  Future<void> signInWithPhone(
+  Future<void> sendOtp(
     BuildContext context,
     ProviderRef ref,
     String phoneNumber,
@@ -89,9 +89,10 @@ class FirebaseAuthRepository implements AuthenticationRepository {
   Future<bool> registerUser(Map<String, dynamic> userData) async {
     try {
       await firestore.collection('users').doc(userData['id']).set(userData);
+      return true;
     } catch (e) {
       debugPrint("Firestore user set error: $e");
+      return false;
     }
-    return true;
   }
 }

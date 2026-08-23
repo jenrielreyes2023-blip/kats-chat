@@ -312,7 +312,11 @@ class CountryPickerController extends StateNotifier<List<Country>> {
     ref
         .read(loginControllerProvider.notifier)
         .updateSelectedCountry(country, true)
-        .whenComplete(() => Navigator.of(context).pop());
+        .whenComplete(() {
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
+        });
   }
 
   void onCrossPressed() {

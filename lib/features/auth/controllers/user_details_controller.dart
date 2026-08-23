@@ -101,7 +101,7 @@ class UserDetailsController extends StateNotifier<File?> {
           'internet connection and try again';
     }
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     if (errorMsg.isNotEmpty) {
       return showDialog(
@@ -130,6 +130,7 @@ class UserDetailsController extends StateNotifier<File?> {
       );
     }
 
+    if (!context.mounted) return;
     final authController = ref.read(authControllerProvider);
 
     showDialog(
@@ -157,13 +158,15 @@ class UserDetailsController extends StateNotifier<File?> {
                 );
 
                 Future.delayed(const Duration(seconds: 2), () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => AuthCompletePage(
-                          user: snapshot.data!,
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => AuthCompletePage(
+                            user: snapshot.data!,
+                          ),
                         ),
-                      ),
-                      (route) => false);
+                        (route) => false);
+                  }
                 });
               } else if (snapshot.hasError) {
                 text = 'Oops! an error occured';
@@ -174,7 +177,9 @@ class UserDetailsController extends StateNotifier<File?> {
                 );
 
                 Future.delayed(const Duration(seconds: 2), () {
-                  Navigator.of(context).pop();
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
                 });
               }
 
