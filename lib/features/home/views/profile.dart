@@ -104,20 +104,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         final updatedUser = _currentUser.copyWith(avatarUrl: newAvatarUrl);
         await _updateUserProfile(updatedUser);
         if (mounted) {
-          showSnackBar(
+          showSuccessNotification(
             context: context,
-            content: 'Profile photo updated successfully!',
-            type: SnacBarType.info,
+            message: 'Profile photo updated successfully!',
           );
         }
       }
     } catch (e) {
       debugPrint('Avatar upload error: $e');
       if (mounted) {
-        showSnackBar(
+        showErrorNotification(
           context: context,
-          content: 'Failed to update profile photo. Please try again.',
-          type: SnacBarType.error,
+          message: 'Failed to update profile photo. Please try again.',
         );
       }
     } finally {
@@ -209,10 +207,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             _currentUser.copyWith(avatarUrl: defaultUrl);
                         await _updateUserProfile(updated);
                         if (mounted) {
-                          showSnackBar(
+                          showSuccessNotification(
                             context: context,
-                            content: 'Profile photo removed',
-                            type: SnacBarType.info,
+                            message: 'Profile photo removed',
                           );
                         }
                       },

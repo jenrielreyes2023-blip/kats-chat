@@ -65,21 +65,13 @@ class FirebaseAuthRepository implements AuthenticationRepository {
 
       onCodeSent(phoneNumber);
       if (context.mounted) Navigator.pop(context);
-      if (context.mounted) {
-        showSnackBar(
-          context: context,
-          content: "OTP Sent via HttpSMS!",
-          type: SnacBarType.info,
-        );
-      }
     } catch (e) {
-      if (context.mounted) Navigator.pop(context);
       if (context.mounted) {
-        showSnackBar(
+        showErrorNotification(
           context: context,
-          content: "HttpSMS failed: $e. Check API key & gateway.",
-          type: SnacBarType.error,
+          message: 'Unable to send the verification SMS. Please try again.',
         );
+        Navigator.pop(context);
       }
       debugPrint('HttpSMS failed: $e');
     }

@@ -7,7 +7,6 @@ import 'package:whatsapp_clone/features/auth/controllers/verification_controller
 import 'package:whatsapp_clone/features/auth/views/login.dart';
 
 import 'package:whatsapp_clone/shared/utils/abc.dart';
-import 'package:whatsapp_clone/shared/utils/snackbars.dart';
 import 'package:whatsapp_clone/theme/theme.dart';
 
 import '../../../shared/models/user.dart';
@@ -40,12 +39,6 @@ class _VerificationPageState extends ConsumerState<VerificationPage> {
   @override
   Widget build(BuildContext context) {
     ref.listen(verificationCodeProvider, (previous, next) {
-      showSnackBar(
-        context: context,
-        content: 'OTP sent!',
-        type: SnacBarType.info,
-      );
-
       ref.read(verificationControllerProvider).updateVerificationCode(next);
       ref.read(resendTimerControllerProvider.notifier).updateTimer();
     });
