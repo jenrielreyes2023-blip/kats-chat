@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:whatsapp_clone/theme/theme.dart';
 import 'package:whatsapp_clone/features/chat/controllers/chat_controller.dart';
@@ -38,32 +39,56 @@ class _GalleryState extends ConsumerState<Gallery>
     super.initState();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      setState(() {
+        _albumsFuture = loadAlbums();
+      });
+    }
+  }
+
   Stream<List<AlbumWrapper>> loadAlbums() async* {
-    final albums = await PhotoManager.getAssetPathList(
-      hasAll: true,
-      type: widget.returnFiles ? RequestType.image : RequestType.common,
-    );
+    try {
+      final permState = await PhotoManager.requestPermissionExtend();
+      if (!permState.hasAccess) {
+        yield const <AlbumWrapper>[];
+        return;
+      }
 
-    final albumWrappers = <AlbumWrapper>[];
-
-    for (final album in albums) {
-      final assets = await album.getAssetListRange(start: 0, end: 1);
-      if (assets.isEmpty) continue;
-
-      final assetCount = await album.assetCountAsync;
-      final thumbnail = assets.first.thumbnailDataWithSize(
-        const ThumbnailSize.square(200),
-        quality: 100,
+      final albums = await PhotoManager.getAssetPathList(
+        hasAll: true,
+        type: widget.returnFiles ? RequestType.image : RequestType.common,
       );
 
-      final albumWrapper = AlbumWrapper(
-        album: album,
-        assetCount: assetCount,
-        thumbnail: thumbnail,
-      );
+      final albumWrappers = <AlbumWrapper>[];
 
-      albumWrappers.add(albumWrapper);
-      yield albumWrappers;
+      for (final album in albums) {
+        final assets = await album.getAssetListRange(start: 0, end: 1);
+        if (assets.isEmpty) continue;
+
+        final assetCount = await album.assetCountAsync;
+        final thumbnail = assets.first.thumbnailDataWithSize(
+          const ThumbnailSize.square(200),
+          quality: 100,
+        );
+
+        final albumWrapper = AlbumWrapper(
+          album: album,
+          assetCount: assetCount,
+          thumbnail: thumbnail,
+        );
+
+        albumWrappers.add(albumWrapper);
+        yield albumWrappers;
+      }
+
+      if (albumWrappers.isEmpty) {
+        yield const <AlbumWrapper>[];
+      }
+    } catch (e) {
+      debugPrint('Error loading gallery albums: $e');
+      yield const <AlbumWrapper>[];
     }
   }
 
@@ -171,36 +196,86 @@ class _GalleryState extends ConsumerState<Gallery>
           },
         ),
       ),
-      body: DefaultTabController(
-        length: 2,
-        child: StreamBuilder(
-          stream: _albumsFuture,
-          builder: (context, snap) {
-            if (!snap.hasData) {
-              return Container();
-            }
-
-            AlbumWrapper? recentAlbum;
-            try {
-              recentAlbum = snap.data!.firstWhere(
-                (element) => element.album.isAll,
-              );
-            } on StateError {
-              recentAlbum = null;
-            }
-
-            return Padding(
-              padding: const EdgeInsets.only(top: 2.0),
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  Recents(recentAlbum: recentAlbum),
-                  AlbumsTab(albums: snap.data!),
-                ],
+      body: StreamBuilder<List<AlbumWrapper>>(
+        stream: _albumsFuture,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(
+                color: colorTheme.greenColor,
               ),
             );
-          },
-        ),
+          }
+
+          final albums = snap.data ?? [];
+          if (albums.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.photo_library_outlined,
+                      size: 64,
+                      color: colorTheme.unselectedLabelColor,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      widget.returnFiles
+                          ? 'Allow photo access to choose a profile image.'
+                          : 'Allow photo access to view photos.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: colorTheme.textColor1,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorTheme.greenColor,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        final granted =
+                            await PhotoManager.requestPermissionExtend();
+                        if (granted.hasAccess) {
+                          setState(() {
+                            _albumsFuture = loadAlbums();
+                          });
+                        } else {
+                          await openAppSettings();
+                        }
+                      },
+                      child: const Text('Open settings'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          AlbumWrapper? recentAlbum;
+          try {
+            recentAlbum = albums.firstWhere(
+              (element) => element.album.isAll,
+            );
+          } on StateError {
+            recentAlbum = null;
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(top: 2.0),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                Recents(recentAlbum: recentAlbum),
+                AlbumsTab(albums: albums),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

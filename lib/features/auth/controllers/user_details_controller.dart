@@ -71,6 +71,7 @@ class UserDetailsController extends StateNotifier<File?> {
         settings: const RouteSettings(name: "/gallery"),
       ));
 
+      if (file == null) return;
       state = await CompressionService.compressImage(file);
       return;
     }
