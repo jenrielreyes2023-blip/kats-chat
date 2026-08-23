@@ -177,19 +177,41 @@ Future<(double, double)> getVideoDimensions(File videoFile) async {
   return (videoSize.width, videoSize.height);
 }
 
+String normalizePhoneNumber(String? value) {
+  if (value == null) return '';
+
+  var digits = value.replaceAll(RegExp(r'\D'), '');
+  if (digits.startsWith('00')) {
+    digits = digits.substring(2);
+  }
+
+  // Treat Philippine local and international formats as one identity:
+  // 09187843417, 9187843417, and +639187843417 -> 9187843417.
+  if (digits.startsWith('63') && digits.length >= 12) {
+    return digits.substring(2);
+  }
+  if (digits.startsWith('0') && digits.length == 11) {
+    return digits.substring(1);
+  }
+  if (digits.length == 10 && digits.startsWith('9')) {
+    return digits;
+  }
+
+  return digits;
+}
+
 bool isPhoneMatch(String? p1, String? p2) {
-  if (p1 == null || p2 == null) return false;
-  final digits1 = p1.replaceAll(RegExp(r'\D'), '');
-  final digits2 = p2.replaceAll(RegExp(r'\D'), '');
-  if (digits1.isEmpty || digits2.isEmpty) return false;
-  if (digits1 == digits2) return true;
-  final len1 = digits1.length;
-  final len2 = digits2.length;
-  final minLen = len1 < len2 ? len1 : len2;
+  final normalized1 = normalizePhoneNumber(p1);
+  final normalized2 = normalizePhoneNumber(p2);
+  if (normalized1.isEmpty || normalized2.isEmpty) return false;
+  if (normalized1 == normalized2) return true;
+
+  final minLen = normalized1.length < normalized2.length
+      ? normalized1.length
+      : normalized2.length;
   if (minLen >= 9) {
-    final sub1 = digits1.substring(len1 - 9);
-    final sub2 = digits2.substring(len2 - 9);
-    return sub1 == sub2;
+    return normalized1.substring(normalized1.length - 9) ==
+        normalized2.substring(normalized2.length - 9);
   }
   return false;
 }

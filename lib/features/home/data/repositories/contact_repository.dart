@@ -51,10 +51,14 @@ class ContactsRepository {
       }
 
       final result = <Contact>[];
+      final seenPhoneNumbers = <String>{};
       final contacts = await FlutterContacts.getContacts(withProperties: true);
 
       for (var contact in contacts) {
         for (var phone in contact.phones) {
+          final phoneKey = normalizePhoneNumber(phone.number);
+          if (phoneKey.isEmpty || !seenPhoneNumbers.add(phoneKey)) continue;
+
           result.add(
             Contact(
               contactId: contact.id,

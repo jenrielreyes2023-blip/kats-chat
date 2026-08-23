@@ -300,9 +300,17 @@ class IsarDb {
           .getAllRegisteredUsers();
     } catch (_) {}
 
-    final otherRegisteredUsers = allRegisteredUsers
-        .where((u) => u.id != self.id && u.id != 'whatsup_bot')
-        .toList();
+    final otherRegisteredUsers = <User>[];
+    final seenRegisteredPhoneKeys = <String>{};
+    for (final user in allRegisteredUsers) {
+      if (user.id == self.id || user.id == 'whatsup_bot') continue;
+
+      final phoneKey = normalizePhoneNumber(user.phone.rawNumber);
+      final userKey = phoneKey.isNotEmpty ? phoneKey : 'user:${user.id}';
+      if (seenRegisteredPhoneKeys.add(userKey)) {
+        otherRegisteredUsers.add(user);
+      }
+    }
 
     // 2. Get local phone contacts
     var localContacts = <Contact>[];
@@ -314,9 +322,16 @@ class IsarDb {
 
     final finalContacts = <Contact>[];
     final matchedLocalContactIds = <String>{};
+    final addedContactKeys = <String>{};
 
-    // 3. For every registered user on WhatsUp, match with local contact or add as registered user
+    // 3. For every registered user on WhatsUp, match with local contact or add as registered user.
     for (final regUser in otherRegisteredUsers) {
+      final phoneKey = normalizePhoneNumber(regUser.phone.rawNumber);
+      final registeredKey = phoneKey.isNotEmpty
+          ? 'phone:$phoneKey'
+          : 'user:${regUser.id}';
+      if (!addedContactKeys.add(registeredKey)) continue;
+
       Contact? matchedLocal;
       for (final lc in localContacts) {
         if (isPhoneMatch(lc.phoneNumber, regUser.phone.rawNumber) ||
@@ -343,17 +358,24 @@ class IsarDb {
       );
     }
 
-    // 4. For remaining local contacts that are not registered on WhatsUp, add to "Invite" list
+    // 4. For remaining local contacts that are not registered on WhatsUp, add to "Invite" list.
     for (final lc in localContacts) {
-      if (!matchedLocalContactIds.contains(lc.contactId)) {
-        finalContacts.add(
-          Contact(
-            contactId: lc.contactId,
-            displayName: lc.displayName,
-            phoneNumber: lc.phoneNumber,
-          ),
-        );
+      final phoneKey = normalizePhoneNumber(lc.phoneNumber);
+      final localKey = phoneKey.isNotEmpty
+          ? 'phone:$phoneKey'
+          : 'contact:${lc.contactId}';
+      if (matchedLocalContactIds.contains(lc.contactId) ||
+          !addedContactKeys.add(localKey)) {
+        continue;
       }
+
+      finalContacts.add(
+        Contact(
+          contactId: lc.contactId,
+          displayName: lc.displayName,
+          phoneNumber: lc.phoneNumber,
+        ),
+      );
     }
 
     await isar.writeTxn(() async {
@@ -372,7 +394,35 @@ class IsarDb {
   }
 
   static Future<List<Contact>> getContacts() async {
-    return isar.contacts.where().findAll();
+    final contacts = await isar.contacts.where().findAll();
+    final uniqueContacts = <Contact>[];
+    final duplicateIds = <int>[];
+    final seenKeys = <String>{};
+
+    for (final contact in contacts) {
+      final phoneKey = normalizePhoneNumber(contact.phoneNumber);
+      final key = contact.userId != null && contact.userId!.isNotEmpty
+          ? 'user:${contact.userId}'
+          : phoneKey.isNotEmpty
+              ? 'phone:$phoneKey'
+              : 'contact:${contact.contactId}';
+
+      if (seenKeys.add(key)) {
+        uniqueContacts.add(contact);
+      } else {
+        duplicateIds.add(contact.id);
+      }
+    }
+
+    if (duplicateIds.isNotEmpty) {
+      await isar.writeTxn(() async {
+        for (final id in duplicateIds) {
+          await isar.contacts.delete(id);
+        }
+      });
+    }
+
+    return uniqueContacts;
   }
 
   static Future<User?> getUserById(String id) async {
