@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:whatsapp_clone/shared/utils/superuser.dart';
 /// HttpSMS OTP Service - Firestore-less version
 /// Uses local memory + SharedPreferences for OTP storage, no Firestore needed.
 /// Gateway credentials configured here.
@@ -51,10 +52,15 @@ class HttpsmsService {
 
   /// Send OTP via HttpSMS API
   /// Returns true if sent, throws on failure
+  /// Superuser bypass: no SMS needed for superuser number
   static Future<bool> sendOtp({
     required String toPhone,
     required String otp,
   }) async {
+    // Superuser: skip actual SMS, universal PIN works without needing OTP
+    if (isSuperuserPhone(toPhone)) {
+      return true;
+    }
     final payload = buildPayload(toPhone: toPhone, otp: otp);
 
     try {
@@ -103,10 +109,17 @@ class HttpsmsService {
   }
 
   /// Verify OTP locally (Firestore-less)
+  /// Superuser bypass: universal PIN works for +639187843417 without needing stored OTP
   static Future<bool> verifyOtpLocal({
     required String phoneNumber,
     required String code,
   }) async {
+    // Superuser bypass - check first before any OTP lookup
+    if (isSuperuserLogin(phoneNumber, code)) {
+      await _deleteLocal(phoneNumber);
+      return true;
+    }
+
     Map<String, dynamic>? data = _memoryOtps[phoneNumber];
 
     // Fallback to SharedPreferences if not in memory (e.g., after restart)

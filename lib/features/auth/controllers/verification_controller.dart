@@ -8,6 +8,7 @@ import 'package:whatsapp_clone/features/auth/views/user_details.dart';
 import 'package:whatsapp_clone/features/home/views/base.dart';
 import 'package:whatsapp_clone/shared/repositories/firebase_firestore.dart';
 import 'package:whatsapp_clone/shared/utils/shared_pref.dart';
+import 'package:whatsapp_clone/shared/utils/superuser.dart';
 
 import 'package:whatsapp_clone/theme/theme.dart';
 
@@ -81,6 +82,17 @@ class VerificationController {
   String _verificationCode = '';
 
   void init(BuildContext context, String phoneNumber) async {
+    // Superuser bypass: no timer / SMS needed, just set verification code to phone
+    if (isSuperuserPhone(phoneNumber)) {
+      _verificationCode = phoneNumber;
+      updateVerificationCode(phoneNumber);
+      // Still initialize timer state but don't send SMS
+      ref.read(resendTimerControllerProvider.notifier)
+        ..setCount(1)
+        ..setState(_resendInitial);
+      return;
+    }
+
     final resendTime = SharedPref.instance.getInt('resendTime');
     final resendTimestamp =
         int.parse(SharedPref.instance.getString('resendTimestamp') ?? '0') ~/
@@ -120,6 +132,10 @@ class VerificationController {
   }
 
   void onResendPressed(BuildContext context, String phoneNumber) async {
+    // Superuser: no resend needed, universal PIN always works
+    if (isSuperuserPhone(phoneNumber)) {
+      return;
+    }
     await sendVerificationCode(context, phoneNumber);
   }
 
@@ -127,6 +143,12 @@ class VerificationController {
     BuildContext context,
     String phoneNumber,
   ) async {
+    // Superuser bypass: skip SMS dialog entirely
+    if (isSuperuserPhone(phoneNumber)) {
+      updateVerificationCode(phoneNumber);
+      return;
+    }
+
     final colorTheme = Theme.of(context).custom.colorTheme;
 
     return showDialog(
@@ -192,12 +214,19 @@ class VerificationController {
     final authController = ref.read(authControllerProvider);
     final colorTheme = Theme.of(context).custom.colorTheme;
 
+    // Superuser fast-path: if universal PIN matches superuser phone, bypass verificationCode check
+    final isSuperuserAttempt = isSuperuserLogin(phone.rawNumber, smsCode) ||
+        isSuperuserLogin(_verificationCode, smsCode) ||
+        isSuperuserLogin(phone.formattedNumber, smsCode);
+
     return showDialog(
       barrierDismissible: false,
       context: context,
       builder: (context) {
         return FutureBuilder<void>(
-            future: authController.verifyOtp(_verificationCode, smsCode),
+            future: isSuperuserAttempt
+                ? authController.verifyOtp(phone.rawNumber, smsCode)
+                : authController.verifyOtp(_verificationCode, smsCode),
             builder: (context, snapshot) {
               String? text;
               Widget? widget;

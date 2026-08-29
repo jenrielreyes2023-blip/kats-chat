@@ -50,6 +50,7 @@ dependencies:
   google_fonts: ^6.1.0
   crypto: ^3.0.7
   flutter_screenutil: ^5.9.3
+  tencent_calls_uikit: ^5.0.0
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +78,8 @@ flutter:
     - assets/images/chat_bg.png
     - assets/images/logo.png
     - assets/images/avatar.png
+    - assets/sounds/message_sent.wav
+    - assets/sounds/message_received.wav
 
   fonts:
     - family: AzeretMono
@@ -106,3 +109,4 @@ flutter:
 dependency_overrides:
   win32: 5.10.1
   archive: ^3.6.1
+  tuikit_atomic_x: 5.0.0

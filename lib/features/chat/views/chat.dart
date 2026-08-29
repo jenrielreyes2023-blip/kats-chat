@@ -19,6 +19,7 @@ import 'package:whatsapp_clone/features/chat/views/widgets/voice_recorder.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
 import 'package:whatsapp_clone/shared/repositories/firebase_firestore.dart';
 import 'package:whatsapp_clone/shared/repositories/isar_db.dart';
+import 'package:whatsapp_clone/shared/services/call_service.dart';
 import 'package:whatsapp_clone/shared/utils/abc.dart';
 import 'package:whatsapp_clone/shared/utils/shared_pref.dart';
 import 'package:whatsapp_clone/shared/widgets/bottom_inset.dart';
@@ -85,36 +86,49 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         titleSpacing: 0.0,
-        title: StreamBuilder<User?>(
+        title: StreamBuilder<UserPresence>(
           stream: ref
               .read(firebaseFirestoreRepositoryProvider)
-              .userStream(userId: other.id),
-          initialData: other,
-          builder: (context, userSnap) {
-            final liveUser = userSnap.data ?? other;
+              .userPresenceStream(userId: other.id),
+          initialData: other.id == 'whatsup_bot'
+              ? const UserPresence(isOnline: true, statusText: 'Online')
+              : const UserPresence(isOnline: false, statusText: ''),
+          builder: (context, presenceSnap) {
+            final presence = presenceSnap.data ??
+                const UserPresence(isOnline: false, statusText: '');
             return Row(
               children: [
                 CircleAvatar(
                   maxRadius: 18,
                   backgroundImage:
-                      CachedNetworkImageProvider(liveUser.avatarUrl),
+                      CachedNetworkImageProvider(other.avatarUrl),
                 ),
                 const SizedBox(
                   width: 8.0,
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.otherUserContactName,
-                      style: Theme.of(context).custom.textTheme.titleMedium,
-                    ),
-                    if (liveUser.activityStatus == UserActivityStatus.online)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                       Text(
-                        'Online',
-                        style: Theme.of(context).custom.textTheme.caption,
+                        widget.otherUserContactName,
+                        style: Theme.of(context).custom.textTheme.titleMedium,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                  ],
+                      if (presence.statusText.isNotEmpty)
+                        Text(
+                          presence.statusText,
+                          style: TextStyle(
+                            color: presence.isOnline
+                                ? const Color(0xFF25D366)
+                                : Theme.of(context).custom.colorTheme.greyColor,
+                            fontSize: 12.0,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
                 ),
               ],
             );
@@ -131,8 +145,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         ),
         actions: [
           IconButton(
-            onPressed:
-                recordingState == RecordingState.notRecording ? () {} : null,
+            onPressed: recordingState == RecordingState.notRecording
+                ? () => CallService.startVideoCall(other.id)
+                : null,
             icon: const Icon(
               Icons.videocam_rounded,
               size: 28,
@@ -140,8 +155,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             ),
           ),
           IconButton(
-            onPressed:
-                recordingState == RecordingState.notRecording ? () {} : null,
+            onPressed: recordingState == RecordingState.notRecording
+                ? () => CallService.startVoiceCall(other.id)
+                : null,
             icon: const Icon(
               Icons.call,
               color: Colors.white,

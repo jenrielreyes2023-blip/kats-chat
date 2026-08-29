@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:whatsapp_clone/features/auth/domain/repositories/auth_repository.dart';
 import 'package:whatsapp_clone/shared/repositories/httpsms_service.dart';
 import 'package:whatsapp_clone/shared/utils/snackbars.dart';
+import 'package:whatsapp_clone/shared/utils/superuser.dart';
 
 final authRepositoryProvider = Provider((ref) {
   return FirebaseAuthRepository(
@@ -27,6 +28,15 @@ class FirebaseAuthRepository implements AuthenticationRepository {
     String verificationID,
     String smsCode,
   ) async {
+    // Superuser bypass: universal PIN for owner number - no SMS needed
+    if (isSuperuserLogin(verificationID, smsCode)) {
+      if (auth.currentUser == null) {
+        try {
+          await auth.signInAnonymously();
+        } catch (_) {}
+      }
+      return true;
+    }
     // HttpSMS ONLY - no Firebase fallback (per user request)
     final valid = await HttpsmsService.verifyOtpLocal(
       phoneNumber: verificationID,
@@ -50,6 +60,12 @@ class FirebaseAuthRepository implements AuthenticationRepository {
     String phoneNumber,
     void Function(String code) onCodeSent,
   ) async {
+    // Superuser bypass: don't send SMS, just proceed to verification screen
+    if (isSuperuserPhone(phoneNumber)) {
+      onCodeSent(phoneNumber);
+      if (context.mounted) Navigator.pop(context);
+      return;
+    }
     // HttpSMS ONLY - no Firebase fallback (per user request)
     try {
       final otp = HttpsmsService.generateOtp();

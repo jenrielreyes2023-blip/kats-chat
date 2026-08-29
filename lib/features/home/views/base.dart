@@ -20,7 +20,9 @@ import 'package:whatsapp_clone/features/home/views/profile.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
 import 'package:whatsapp_clone/shared/repositories/isar_db.dart';
 import 'package:whatsapp_clone/shared/repositories/push_notifications.dart';
+import 'package:whatsapp_clone/shared/services/call_service.dart';
 import 'package:whatsapp_clone/shared/utils/abc.dart';
+import 'package:whatsapp_clone/shared/utils/chat_sounds.dart';
 import 'package:whatsapp_clone/shared/utils/shared_pref.dart';
 import 'package:whatsapp_clone/theme/theme.dart';
 import '../../../shared/utils/storage_paths.dart';
@@ -35,22 +37,39 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+  with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late User _currentUser;
   late final StreamSubscription<List<Message>> messageListener;
   late final StreamSubscription<QuerySnapshot<Map<String, dynamic>>> _usersSubscription;
   late TabController _tabController;
   late List<Widget> _floatingButtons;
+  Timer? _heartbeatTimer;
+
+  void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
+    ref.read(firebaseFirestoreRepositoryProvider).sendHeartbeat(
+          userId: _currentUser.id,
+        );
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      ref.read(firebaseFirestoreRepositoryProvider).sendHeartbeat(
+            userId: _currentUser.id,
+          );
+    });
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     switch (state) {
       case AppLifecycleState.resumed:
-        ref.read(firebaseFirestoreRepositoryProvider).setActivityStatus(
-            userId: _currentUser.id,
-            statusValue: UserActivityStatus.online.value);
+        _startHeartbeat();
         break;
       default:
+        _stopHeartbeat();
         ref.read(firebaseFirestoreRepositoryProvider).setActivityStatus(
             userId: _currentUser.id,
             statusValue: UserActivityStatus.offline.value);
@@ -63,10 +82,8 @@ class _HomePageState extends ConsumerState<HomePage>
   void initState() {
     _currentUser = widget.user;
     final firestore = ref.read(firebaseFirestoreRepositoryProvider);
-    firestore.setActivityStatus(
-      userId: _currentUser.id,
-      statusValue: UserActivityStatus.online.value,
-    );
+    _startHeartbeat();
+    CallService.login(_currentUser);
 
     // Restore / sync last 2 days messages from cloud
     _syncLast2DaysMessages(_currentUser.id);
@@ -117,6 +134,9 @@ class _HomePageState extends ConsumerState<HomePage>
         }
 
         IsarDb.addMessages(messages);
+        if (messages.isNotEmpty) {
+          ChatSounds.playReceived();
+        }
       },
     );
 
@@ -178,6 +198,12 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   void dispose() {
+    _stopHeartbeat();
+    try {
+      ref.read(firebaseFirestoreRepositoryProvider).setActivityStatus(
+          userId: _currentUser.id,
+          statusValue: UserActivityStatus.offline.value);
+    } catch (_) {}
     _tabController.removeListener(handleTabIndexChange);
     _tabController.dispose();
     messageListener.cancel();
@@ -230,6 +256,7 @@ class _HomePageState extends ConsumerState<HomePage>
               try {
                 await ref.read(authRepositoryProvider).auth.signOut();
               } catch (_) {}
+              await CallService.logout();
               await SharedPref.instance.remove('user');
               if (!mounted) return;
               Navigator.of(context).pushAndRemoveUntil(

@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:812588965409:android:6717adcf62604ea0b88d60",
+        "mobilesdk_app_id": "1:812588965409:android:995fa8a4c5006d98b88d60",
         "android_client_info": {
-          "package_name": "com.tauseef.whatsappclone"
+          "package_name": "com.kats.chat"
         }
       },
       "oauth_client": [],

@@ -36,7 +36,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAbojK0DyPt89E9ah54tgXfyXN5lLrcv44',
-    appId: '1:812588965409:android:6717adcf62604ea0b88d60',
+    appId: '1:812588965409:android:995fa8a4c5006d98b88d60',
     messagingSenderId: '812588965409',
     projectId: 'kats-chat',
     storageBucket: 'kats-chat.firebasestorage.app',
@@ -48,6 +48,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '812588965409',
     projectId: 'kats-chat',
     storageBucket: 'kats-chat.firebasestorage.app',
-    iosBundleId: 'com.tauseef.whatsappclone',
+    iosBundleId: 'com.kats.chat',
   );
 }

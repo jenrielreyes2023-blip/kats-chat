@@ -13,6 +13,8 @@ import 'firebase_options.dart';
 
 import 'package:whatsapp_clone/theme/theme.dart';
 
+import 'package:tencent_calls_uikit/tencent_calls_uikit.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -43,8 +45,9 @@ class WhatsApp extends ConsumerWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
-          title: "WhatsUp",
+          title: "katschat",
           initialRoute: '/',
+          navigatorObservers: [TUICallKit.navigatorObserver],
           theme: ref.read(lightThemeProvider),
           darkTheme: ref.read(darkThemeProvider),
           themeMode: ThemeMode.system,

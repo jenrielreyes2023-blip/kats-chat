@@ -10,6 +10,20 @@ import 'package:whatsapp_clone/shared/utils/shared_pref.dart';
 import 'package:flutter/foundation.dart';
 import 'package:whatsapp_clone/shared/utils/abc.dart';
 
+import 'package:intl/intl.dart';
+
+class UserPresence {
+  final bool isOnline;
+  final String statusText;
+  final DateTime? lastSeen;
+
+  const UserPresence({
+    required this.isOnline,
+    required this.statusText,
+    this.lastSeen,
+  });
+}
+
 final firebaseFirestoreRepositoryProvider = Provider(
   (ref) => FirebaseFirestoreRepo(
     firestore: FirebaseFirestore.instance
@@ -31,10 +45,72 @@ class FirebaseFirestoreRepo {
     required String userId,
     required String statusValue,
   }) async {
-    await firestore
-        .collection('users')
-        .doc(userId)
-        .update({'activityStatus': statusValue});
+    try {
+      await firestore.collection('users').doc(userId).set({
+        'activityStatus': statusValue,
+        'lastSeen': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  Future<void> sendHeartbeat({required String userId}) async {
+    try {
+      await firestore.collection('users').doc(userId).set({
+        'activityStatus': UserActivityStatus.online.value,
+        'lastSeen': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  Stream<UserPresence> userPresenceStream({required String userId}) {
+    if (userId == 'whatsup_bot') {
+      return Stream.value(
+        const UserPresence(isOnline: true, statusText: 'Online'),
+      );
+    }
+
+    return firestore.collection('users').doc(userId).snapshots().map((event) {
+      if (!event.exists || event.data() == null) {
+        return const UserPresence(isOnline: false, statusText: '');
+      }
+
+      final data = event.data()!;
+      final activityStatus = data['activityStatus'] as String? ?? 'Offline';
+      final lastSeenRaw = data['lastSeen'];
+      DateTime? lastSeen;
+
+      if (lastSeenRaw is Timestamp) {
+        lastSeen = lastSeenRaw.toDate();
+      } else if (lastSeenRaw is int) {
+        lastSeen = DateTime.fromMillisecondsSinceEpoch(lastSeenRaw);
+      }
+
+      final now = DateTime.now();
+      final bool isRecentlyActive =
+          lastSeen != null && now.difference(lastSeen).inSeconds < 90;
+      final bool isOnline =
+          (activityStatus == 'Online') && isRecentlyActive;
+
+      String statusText = '';
+      if (isOnline) {
+        statusText = 'Online';
+      } else if (lastSeen != null) {
+        final timeStr = DateFormat('h:mm a').format(lastSeen);
+        if (datesHaveSameDay(now, lastSeen)) {
+          statusText = 'last seen today at $timeStr';
+        } else if (isYesterday(lastSeen)) {
+          statusText = 'last seen yesterday at $timeStr';
+        } else {
+          statusText = 'last seen ${DateFormat.yMd().format(lastSeen)}';
+        }
+      }
+
+      return UserPresence(
+        isOnline: isOnline,
+        statusText: statusText,
+        lastSeen: lastSeen,
+      );
+    });
   }
 
   Stream<UserActivityStatus> userActivityStatusStream({required userId}) {

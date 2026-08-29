@@ -28,6 +28,7 @@ import 'package:whatsapp_clone/theme/theme.dart';
 import '../../../shared/repositories/download_service.dart';
 import '../../../shared/repositories/push_notifications.dart';
 import '../../../shared/utils/abc.dart';
+import '../../../shared/utils/chat_sounds.dart';
 import '../../../shared/widgets/gallery.dart';
 import '../models/attachement.dart';
 import '../views/attachment_sender.dart';
@@ -303,6 +304,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
 
   Future<void> sendMessageNoAttachments(Message message) async {
     await IsarDb.addMessage(message);
+    ChatSounds.playSent();
 
     if (message.receiverId == 'whatsup_bot') {
       Future.delayed(const Duration(milliseconds: 600), () async {
@@ -328,6 +330,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
           timestamp: Timestamp.now(),
         );
         await IsarDb.addMessage(botReply);
+        ChatSounds.playReceived();
       });
       return;
     }
@@ -350,6 +353,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
   }
 
   void sendMessageWithAttachments(Message message) async {
+    ChatSounds.playSent();
     if ({
       AttachmentType.document,
       AttachmentType.audio,

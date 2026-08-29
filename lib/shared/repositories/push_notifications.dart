@@ -84,6 +84,7 @@ class PushNotificationsRepo {
           'messageContent': messageContent,
           'authorId': user.id,
           'authorName': user.name,
+          'authorAvatarUrl': user.avatarUrl,
         },
       );
 
