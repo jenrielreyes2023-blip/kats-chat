@@ -109,4 +109,3 @@ flutter:
 dependency_overrides:
   win32: 5.10.1
   archive: ^3.6.1
-  tuikit_atomic_x: 5.0.0
