@@ -36,9 +36,24 @@ subprojects {
 
 subprojects { project ->
     if (project.name != 'app') {
-        project.afterEvaluate {
+        afterEvaluate {
             if (project.hasProperty('android')) {
                 project.android {
+                    if (namespace == null) {
+                        try {
+                            def manifestFile = project.file("src/main/AndroidManifest.xml")
+                            if (manifestFile.exists()) {
+                                def manifestText = manifestFile.text
+                                def matcher = (manifestText =~ /package=["']([^"']+)["']/)
+                                if (matcher.find()) {
+                                    namespace = matcher.group(1)
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                        if (namespace == null || namespace.isEmpty()) {
+                            namespace = "com.flutter.${project.name.replaceAll('[^a-zA-Z0-9_]', '_')}"
+                        }
+                    }
                     compileSdkVersion 34
                     buildToolsVersion "34.0.0"
                 }
