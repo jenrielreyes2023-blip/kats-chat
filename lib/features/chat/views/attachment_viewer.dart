@@ -1397,7 +1397,7 @@ class UploadingAttachment extends ConsumerStatefulWidget {
 
 class _UploadingAttachmentState extends ConsumerState<UploadingAttachment> {
   late bool isUploading;
-  late Stream<TaskSnapshot> uploadStream;
+  Stream<TaskSnapshot>? uploadStream;
   late bool clientIsSender;
 
   @override
@@ -1405,10 +1405,7 @@ class _UploadingAttachmentState extends ConsumerState<UploadingAttachment> {
     isUploading =
         widget.message.attachment!.uploadStatus == UploadStatus.uploading;
     if (isUploading) {
-      final stream = UploadService.getUploadStream(widget.message.id);
-      if (stream != null) {
-        uploadStream = stream;
-      }
+      uploadStream = UploadService.getUploadStream(widget.message.id);
     }
 
     clientIsSender = ref.read(chatControllerProvider.notifier).self.id ==
@@ -1425,7 +1422,7 @@ class _UploadingAttachmentState extends ConsumerState<UploadingAttachment> {
         widget.message.attachment!.uploadStatus == UploadStatus.uploading;
 
     if (isUploading) {
-      uploadStream = UploadService.getUploadStream(widget.message.id)!;
+      uploadStream = UploadService.getUploadStream(widget.message.id);
     }
   }
 
@@ -1434,7 +1431,7 @@ class _UploadingAttachmentState extends ConsumerState<UploadingAttachment> {
         .read(chatControllerProvider.notifier)
         .uploadAttachment(widget.message);
 
-    uploadStream = UploadService.getUploadStream(widget.message.id)!;
+    uploadStream = UploadService.getUploadStream(widget.message.id);
     setState(() => isUploading = true);
   }
 
@@ -1503,7 +1500,13 @@ class _UploadingAttachmentState extends ConsumerState<UploadingAttachment> {
       overlayColor: widget.showSize ? overlayColor : Colors.transparent,
     );
 
-    return StreamBuilder(
+    if (uploadStream == null) {
+      return const CircularProgressIndicator(
+        strokeWidth: 3.0,
+      );
+    }
+
+    return StreamBuilder<TaskSnapshot>(
       stream: uploadStream,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -1517,7 +1520,9 @@ class _UploadingAttachmentState extends ConsumerState<UploadingAttachment> {
             return ProgressCancelBtn(
               onTap: stopUpload,
               overlayColor: widget.showSize ? overlayColor : Colors.transparent,
-              progressValue: snapData.bytesTransferred / snapData.totalBytes,
+              progressValue: snapData.totalBytes > 0
+                  ? snapData.bytesTransferred / snapData.totalBytes
+                  : null,
             );
           case TaskState.success:
             return const CircularProgressIndicator(
