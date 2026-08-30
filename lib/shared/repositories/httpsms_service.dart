@@ -3,15 +3,16 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:whatsapp_clone/shared/utils/superuser.dart';
-/// HttpSMS OTP Service - Firestore-less version
-/// Uses local memory + SharedPreferences for OTP storage, no Firestore needed.
-/// Gateway credentials configured here.
+/// SMS OTP Service - KatsKlub Termux Worker & Database Queue
+/// Uses local memory + SharedPreferences for OTP storage.
+/// Dispatches SMS through the KatsKlub Termux SMS Gateway Queue.
 class HttpsmsService {
-  // Gateway credentials - configured via --dart-define
-  // Provide at build/run: flutter run --dart-define=HTTPSMS_API_KEY=pk_... --dart-define=HTTPSMS_GATEWAY=+639...
-  static const String _apiKey = String.fromEnvironment('HTTPSMS_API_KEY', defaultValue: '');
-  static const String _gatewayPhone = String.fromEnvironment('HTTPSMS_GATEWAY', defaultValue: '+639187843417');
-  static const String _baseUrl = 'https://api.httpsms.com/v1/messages/send';
+  // Gateway URL - configured via --dart-define
+  // Provide at build/run: flutter run --dart-define=SMS_GATEWAY_URL=https://katsklub.top/api/sms/queue
+  static const String _baseUrl = String.fromEnvironment(
+    'SMS_GATEWAY_URL',
+    defaultValue: 'https://katsklub.top/api/sms/queue',
+  );
 
   // Local storage keys
   static const String _prefsCodeSuffix = '_code';
@@ -27,7 +28,7 @@ class HttpsmsService {
     return (100000 + rnd.nextInt(900000)).toString();
   }
 
-  /// Build payload for HttpSMS API (exposed for testing)
+  /// Build payload for SMS Queue API (exposed for testing)
   static Map<String, dynamic> buildPayload({
     required String toPhone,
     required String otp,
@@ -35,16 +36,14 @@ class HttpsmsService {
     final message =
         'KatsChat Verification Code: $otp\n\nThis code is valid for 5 minutes. For your security, please do not share this code with anyone. If you did not request this code, please ignore this message.';
     return {
-      'from': _gatewayPhone,
-      'to': toPhone,
-      'content': message,
+      'phone': toPhone,
+      'message': message,
     };
   }
 
-  /// Build headers for HttpSMS API (exposed for testing)
+  /// Build headers for SMS Queue API (exposed for testing)
   static Map<String, String> buildHeaders() {
     return {
-      'x-api-key': _apiKey,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
@@ -73,7 +72,7 @@ class HttpsmsService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       } else {
-        throw Exception('HttpSMS failed: ${response.statusCode} ${response.body}');
+        throw Exception('SMS Gateway failed: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
       rethrow;

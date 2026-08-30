@@ -22,14 +22,12 @@ void main() {
 
     test('buildPayload', () {
       final p = HttpsmsService.buildPayload(toPhone: '+639187843417', otp: '123456');
-      expect(p['from'], isNotEmpty);
-      expect(p['to'], '+639187843417');
-      expect((p['content'] as String).contains('123456'), true);
+      expect(p['phone'], '+639187843417');
+      expect((p['message'] as String).contains('123456'), true);
     });
 
     test('buildHeaders structure', () {
       final h = HttpsmsService.buildHeaders();
-      expect(h.containsKey('x-api-key'), true);
       expect(h['Content-Type'], 'application/json');
       expect(h['Accept'], 'application/json');
     });
