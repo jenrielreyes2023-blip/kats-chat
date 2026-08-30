@@ -77,7 +77,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 style: TextStyle(color: colorTheme.textColor1),
                 children: [
                   const TextSpan(
-                    text: 'WhatsApp will need to verify your phone number. ',
+                    text: 'KatsChat will need to verify your phone number. ',
                   ),
                   TextSpan(
                     text: 'What\'s my number?',

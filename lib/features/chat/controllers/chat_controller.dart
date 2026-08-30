@@ -317,7 +317,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
         final replies = [
           "Kumusta! Nakarating ang mensahe mo. Pwede mong subukan mag-record ng voice note o magpadala ng photos! 🎙️📸",
           "Awesome! Gumagana nang maayos ang conversation interface at real-time messaging. 🔥",
-          "Ganda ng WhatsApp clone no? Subukan mo rin ang dark mode at camera attachment! 🌓",
+          "Kamusta! Maligayang pagdating sa KatsChat 🚀. Subukan mo rin ang dark mode at camera attachment! 🌓",
           "Roger that! Received loud and clear. 👍",
         ];
         final replyText = replies[(DateTime.now().millisecondsSinceEpoch ~/ 1000) % replies.length];

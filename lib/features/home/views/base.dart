@@ -244,7 +244,7 @@ class _HomePageState extends ConsumerState<HomePage>
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Log out'),
-        content: const Text('Sigurado ka bang nais mong mag-log out sa WhatsUp?'),
+        content: const Text('Sigurado ka bang nais mong mag-log out sa KatsChat?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -336,7 +336,7 @@ class _HomePageState extends ConsumerState<HomePage>
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            'WhatsApp',
+            'KatsChat',
             style: textTheme.titleLarge.copyWith(color: colorTheme.iconColor),
           ),
           actions: [
@@ -532,7 +532,7 @@ class HomePageContactsList extends StatelessWidget {
 
     final botUser = User(
       id: 'whatsup_bot',
-      name: 'WhatsUp Assistant',
+      name: 'KatsChat Assistant',
       avatarUrl: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png',
       phone: Phone(code: '+1', number: '1000000000', formattedNumber: '+1 000 000 0000'),
       activityStatus: UserActivityStatus.online,
@@ -567,7 +567,7 @@ class HomePageContactsList extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Subukan ang conversation interface kasama ang WhatsUp Assistant o mag-start ng bagong chat!',
+              'Subukan ang conversation interface kasama ang KatsChat Assistant o mag-start ng bagong chat!',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -613,9 +613,9 @@ class HomePageContactsList extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => ChatPage(
-                      self: currentUser,
+                       self: currentUser,
                       other: botUser,
-                      otherUserContactName: 'WhatsUp Assistant 🤖',
+                      otherUserContactName: 'KatsChat Assistant 🤖',
                     ),
                     settings: const RouteSettings(name: 'chat'),
                   ),
@@ -623,7 +623,7 @@ class HomePageContactsList extends StatelessWidget {
               },
               icon: const Icon(Icons.smart_toy_outlined),
               label: const Text(
-                'Subukan ang WhatsUp Assistant 🤖',
+                'Subukan ang KatsChat Assistant 🤖',
               ),
             ),
           ],

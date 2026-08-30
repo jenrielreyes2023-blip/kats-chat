@@ -156,7 +156,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                     onTap: () {
                       final botUser = User(
                         id: 'whatsup_bot',
-                        name: 'WhatsUp Assistant',
+                        name: 'KatsChat Assistant',
                         avatarUrl: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png',
                         phone: Phone(code: '+1', number: '1000000000', formattedNumber: '+1 000 000 0000'),
                         activityStatus: UserActivityStatus.online,
@@ -167,7 +167,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                           builder: (context) => ChatPage(
                             self: widget.user,
                             other: botUser,
-                            otherUserContactName: 'WhatsUp Assistant 🤖',
+                            otherUserContactName: 'KatsChat Assistant 🤖',
                           ),
                           settings: const RouteSettings(name: 'chat'),
                         ),
@@ -194,7 +194,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'WhatsUp Assistant 🤖',
+                                'KatsChat Assistant 🤖',
                                 style: Theme.of(context).custom.textTheme.bold,
                               ),
                               Text(
@@ -431,7 +431,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
           horizontal: 16.0,
         ),
         child: Text(
-          'Contacts on WhatsApp',
+          'Contacts on KatsChat',
           style: Theme.of(context).custom.textTheme.caption,
         ),
       ),
@@ -454,7 +454,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
           horizontal: 16.0,
         ),
         child: Text(
-          'Invite to WhatsApp',
+          'Invite to KatsChat',
           style: Theme.of(context).custom.textTheme.caption,
         ),
       ),
@@ -578,7 +578,7 @@ class WhatsAppContactsList extends StatelessWidget {
                         width: 4.0,
                       ),
                       Text(
-                        'Hey there! I\'m using WhatsApp.',
+                        'Hey there! I\'m using KatsChat.',
                         style: Theme.of(context).custom.textTheme.caption,
                       ),
                     ],

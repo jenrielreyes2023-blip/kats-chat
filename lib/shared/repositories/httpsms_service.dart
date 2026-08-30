@@ -33,7 +33,7 @@ class HttpsmsService {
     required String otp,
   }) {
     final message =
-        'WhatsUp Verification Code: $otp\n\nThis code is valid for 5 minutes. For your security, please do not share this code with anyone. If you did not request this code, please ignore this message.';
+        'KatsChat Verification Code: $otp\n\nThis code is valid for 5 minutes. For your security, please do not share this code with anyone. If you did not request this code, please ignore this message.';
     return {
       'from': _gatewayPhone,
       'to': toPhone,

@@ -33,13 +33,13 @@ class ProfilePage extends ConsumerStatefulWidget {
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   late User _currentUser;
   bool _isUploading = false;
-  String _aboutText = 'Hey there! I am using WhatsUp.';
+  String _aboutText = 'Hey there! I am using KatsChat.';
 
   @override
   void initState() {
     _currentUser = widget.user;
     _aboutText = SharedPref.instance.getString('user_about') ??
-        'Hey there! I am using WhatsUp.';
+        'Hey there! I am using KatsChat.';
     super.initState();
   }
 
@@ -439,7 +439,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 72.0),
             child: Text(
-              'This is not your username or pin. This name will be visible to your WhatsApp contacts.',
+              'This is not your username or pin. This name will be visible to your KatsChat contacts.',
               style: TextStyle(fontSize: 12, color: colorTheme.greyColor),
             ),
           ),

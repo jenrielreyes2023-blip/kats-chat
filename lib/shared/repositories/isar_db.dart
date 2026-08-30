@@ -429,7 +429,7 @@ class IsarDb {
     if (id == 'whatsup_bot') {
       return User(
         id: 'whatsup_bot',
-        name: 'WhatsUp Assistant',
+        name: 'KatsChat Assistant',
         avatarUrl: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png',
         phone: Phone(code: '+1', number: '1000000000', formattedNumber: '+1 000 000 0000'),
         activityStatus: UserActivityStatus.online,

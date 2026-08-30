@@ -660,7 +660,7 @@ class _ChatStreamState extends ConsumerState<ChatStream> {
                             : const Color.fromARGB(148, 248, 236, 130),
                       ),
                       child: Text(
-                        '🔒Messages and calls are end-to-end encrypted. No one outside this chat, not even WhatsApp, can read or listen to them. Tap to learn more.',
+                        '🔒Messages and calls are end-to-end encrypted. No one outside this chat, not even KatsChat, can read or listen to them. Tap to learn more.',
                         style: TextStyle(
                           fontSize: 13,
                           color: isDarkTheme

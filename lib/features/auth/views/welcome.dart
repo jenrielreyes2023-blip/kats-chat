@@ -48,7 +48,7 @@ class WelcomePage extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             Text(
-              'Welcome to WhatsApp',
+              'Welcome to KatsChat',
               style: TextStyle(
                 fontSize: 25,
                 fontWeight: FontWeight.w600,

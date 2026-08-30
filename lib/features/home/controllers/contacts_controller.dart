@@ -26,7 +26,7 @@ final contactPickerControllerProvider =
 );
 
 const shareMsg =
-    'Let\'s chat on katschat! It\'s a fast, simple, and secure app we can use to message and call each other for free.';
+    'Let\'s chat on KatsChat! It\'s a fast, simple, and secure app we can use to message and call each other for free.';
 
 class ContactPickerController extends StateNotifier<List<Contact>> {
   late List<Contact> _contacts;
@@ -111,7 +111,7 @@ class ContactPickerController extends StateNotifier<List<Contact>> {
   void shareInviteLink(RenderBox? box) {
     Share.share(
       shareMsg,
-      subject: 'WhatsApp Messenger: Android + iPhone',
+      subject: 'KatsChat: Android + iPhone',
       sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
     );
   }

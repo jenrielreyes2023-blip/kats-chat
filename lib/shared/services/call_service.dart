@@ -92,7 +92,7 @@ class CallService {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Hindi available ang voice call para sa WhatsUp Assistant 🤖. Subukan tumawag sa isang totoong contact.',
+            'Hindi available ang voice call para sa KatsChat Assistant 🤖. Subukan tumawag sa isang totoong contact.',
           ),
           duration: Duration(seconds: 3),
         ),
@@ -154,7 +154,7 @@ class CallService {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Hindi available ang video call para sa WhatsUp Assistant 🤖. Subukan tumawag sa isang totoong contact.',
+            'Hindi available ang video call para sa KatsChat Assistant 🤖. Subukan tumawag sa isang totoong contact.',
           ),
           duration: Duration(seconds: 3),
         ),
