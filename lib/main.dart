@@ -69,13 +69,17 @@ class WhatsApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    try {
+      TUICallKit.instance.enableIncomingBanner(true);
+    } catch (_) {}
+
     return ScreenUtilInit(
       designSize: const Size(360, 800),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
-          title: "katschat",
+          title: "KatsChat",
           initialRoute: '/',
           navigatorObservers: [TUICallKit.navigatorObserver],
           theme: ref.read(lightThemeProvider),

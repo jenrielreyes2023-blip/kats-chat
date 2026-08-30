@@ -51,6 +51,9 @@ class CallService {
         try {
           await TUICallKit.instance.enableFloatWindow(true);
         } catch (_) {}
+        try {
+          TUICallKit.instance.enableIncomingBanner(true);
+        } catch (_) {}
         debugPrint('Tencent CallKit logged in successfully for ${user.name} (${user.id})');
         return true;
       } else {
