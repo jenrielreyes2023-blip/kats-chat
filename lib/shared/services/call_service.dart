@@ -1,8 +1,5 @@
-import 'dart:convert';
-import 'dart:io';
-import 'package:crypto/crypto.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:tencent_calls_uikit/debug/generate_test_user_sig.dart';
 import 'package:tencent_calls_uikit/tencent_calls_uikit.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
 import 'package:whatsapp_clone/shared/utils/abc.dart';
@@ -11,39 +8,12 @@ class CallService {
   static const int sdkAppId = 20047194;
   static const String secretKey =
       '142f82f08ed2c9c2993ef632f96d46f462cd1c3bec75feb80fc8abcb0870257a';
-  static const int expireTime = 604800; // 7 days in seconds
 
   static bool _isLoggedIn = false;
 
-  /// Generates the official Tencent cryptographic UserSig for authentication
+  /// Generates the official Tencent cryptographic UserSig using Tencent's official algorithm
   static String generateUserSig(String userId) {
-    final currTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final sigDoc = <String, dynamic>{
-      'TLS.ver': '2.0',
-      'TLS.identifier': userId,
-      'TLS.sdkappid': sdkAppId,
-      'TLS.expire': expireTime,
-      'TLS.time': currTime,
-    };
-
-    final contentToBeSigned = "TLS.identifier:$userId\n"
-        "TLS.sdkappid:$sdkAppId\n"
-        "TLS.time:$currTime\n"
-        "TLS.expire:$expireTime\n";
-
-    final hmacSha256 = Hmac(sha256, utf8.encode(secretKey));
-    final digest = hmacSha256.convert(utf8.encode(contentToBeSigned));
-    final sig = base64.encode(digest.bytes);
-    sigDoc['TLS.sig'] = sig;
-
-    final jsonStr = json.encode(sigDoc);
-    final compressed = zlib.encode(utf8.encode(jsonStr));
-
-    // Tencent specific Base64 URL encoding replacements
-    return base64.encode(compressed)
-        .replaceAll('+', '*')
-        .replaceAll('/', '-')
-        .replaceAll('=', '_');
+    return GenerateTestUserSig.genTestSig(userId, sdkAppId, secretKey);
   }
 
   /// Logs into TUICallKit with the current user credentials
@@ -58,12 +28,16 @@ class CallService {
 
       if (res.code.isEmpty || res.code == '0') {
         _isLoggedIn = true;
-        await TUICallKit.instance.setSelfInfo(user.name, user.avatarUrl);
-        await TUICallKit.instance.enableFloatWindow(true);
-        debugPrint('Tencent CallKit logged in successfully for ${user.name}');
+        try {
+          await TUICallKit.instance.setSelfInfo(user.name, user.avatarUrl);
+        } catch (_) {}
+        try {
+          await TUICallKit.instance.enableFloatWindow(true);
+        } catch (_) {}
+        debugPrint('Tencent CallKit logged in successfully for ${user.name} (${user.id})');
       } else {
         debugPrint(
-            'Tencent CallKit login code: ${res.code}, msg: ${res.message}');
+            'Tencent CallKit login failed - code: ${res.code}, msg: ${res.message}');
       }
     } catch (e) {
       debugPrint('Error logging in to Tencent CallKit: $e');
