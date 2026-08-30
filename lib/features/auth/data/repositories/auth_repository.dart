@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:whatsapp_clone/features/auth/domain/repositories/auth_repository.dart';
-import 'package:whatsapp_clone/shared/repositories/httpsms_service.dart';
+import 'package:whatsapp_clone/shared/repositories/sms_gateway_service.dart';
 import 'package:whatsapp_clone/shared/utils/snackbars.dart';
 import 'package:whatsapp_clone/shared/utils/superuser.dart';
 
@@ -37,8 +37,8 @@ class FirebaseAuthRepository implements AuthenticationRepository {
       }
       return true;
     }
-    // HttpSMS ONLY - no Firebase fallback (per user request)
-    final valid = await HttpsmsService.verifyOtpLocal(
+    // SMS Gateway verification
+    final valid = await SmsGatewayService.verifyOtpLocal(
       phoneNumber: verificationID,
       code: smsCode,
     );
@@ -66,15 +66,15 @@ class FirebaseAuthRepository implements AuthenticationRepository {
       if (context.mounted) Navigator.pop(context);
       return;
     }
-    // HttpSMS ONLY - no Firebase fallback (per user request)
+    // SMS Gateway dispatch
     try {
-      final otp = HttpsmsService.generateOtp();
-      await HttpsmsService.storeOtpLocal(
+      final otp = SmsGatewayService.generateOtp();
+      await SmsGatewayService.storeOtpLocal(
         phoneNumber: phoneNumber,
         otp: otp,
       );
 
-      await HttpsmsService.sendOtp(
+      await SmsGatewayService.sendOtp(
         toPhone: phoneNumber,
         otp: otp,
       );
@@ -89,7 +89,7 @@ class FirebaseAuthRepository implements AuthenticationRepository {
         );
         Navigator.pop(context);
       }
-      debugPrint('HttpSMS failed: $e');
+      debugPrint('SMS Gateway failed: $e');
     }
   }
 

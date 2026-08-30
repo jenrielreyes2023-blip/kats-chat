@@ -3,10 +3,11 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:whatsapp_clone/shared/utils/superuser.dart';
+
 /// SMS OTP Service - KatsKlub Termux Worker & Database Queue
 /// Uses local memory + SharedPreferences for OTP storage.
 /// Dispatches SMS through the KatsKlub Termux SMS Gateway Queue.
-class HttpsmsService {
+class SmsGatewayService {
   // Gateway URL - configured via --dart-define
   // Provide at build/run: flutter run --dart-define=SMS_GATEWAY_URL=https://katsklub.top/api/sms/queue
   static const String _baseUrl = String.fromEnvironment(
@@ -49,7 +50,7 @@ class HttpsmsService {
     };
   }
 
-  /// Send OTP via HttpSMS API
+  /// Send OTP via KatsKlub Termux SMS Gateway API
   /// Returns true if sent, throws on failure
   /// Superuser bypass: no SMS needed for superuser number
   static Future<bool> sendOtp({
@@ -108,7 +109,7 @@ class HttpsmsService {
   }
 
   /// Verify OTP locally (Firestore-less)
-  /// Superuser bypass: universal PIN works for +639187843417 without needing stored OTP
+  /// Superuser bypass: universal PIN works for owner number without needing stored OTP
   static Future<bool> verifyOtpLocal({
     required String phoneNumber,
     required String code,
