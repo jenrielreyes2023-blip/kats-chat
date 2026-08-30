@@ -59,11 +59,16 @@ class _AuthCompletePageState extends ConsumerState<AuthCompletePage> {
                 style: TextStyle(color: colorTheme.greyColor),
               ),
               Expanded(
-                child: Image.asset(
-                  'assets/images/landing_img.png',
-                  color: colorTheme.greenColor,
-                  width: 275,
-                  height: 300,
+                child: Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: Image.asset(
+                      'assets/images/landing_img.png',
+                      width: 220,
+                      height: 220,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
               ),
               CircularProgressIndicator(

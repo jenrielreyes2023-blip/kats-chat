@@ -40,11 +40,14 @@ class WelcomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/landing_img.png',
-              color: colorTheme.greenColor,
-              width: MediaQuery.of(context).size.width * 0.70,
-              height: MediaQuery.of(context).size.height * 0.4,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: Image.asset(
+                'assets/images/landing_img.png',
+                width: MediaQuery.of(context).size.width * 0.65,
+                height: MediaQuery.of(context).size.width * 0.65,
+                fit: BoxFit.cover,
+              ),
             ),
             const SizedBox(height: 32),
             Text(
