@@ -15,23 +15,53 @@ import 'package:whatsapp_clone/theme/theme.dart';
 
 import 'package:tencent_calls_uikit/tencent_calls_uikit.dart';
 
+import 'dart:async';
+
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      debugPrint('Flutter Error: ${details.exceptionAsString()}');
+    };
 
-  await SharedPref.init();
-  await IsarDb.init();
-  await DeviceStorage.init();
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (e) {
+      debugPrint('Firebase init warning: $e');
+    }
 
-  ErrorWidget.builder = (details) => CustomErrorWidget(details: details);
-  return runApp(
-    const ProviderScope(
-      child: WhatsApp(),
-    ),
-  );
+    try {
+      await SharedPref.init();
+    } catch (e) {
+      debugPrint('SharedPref init warning: $e');
+    }
+
+    try {
+      await IsarDb.init();
+    } catch (e) {
+      debugPrint('IsarDb init warning: $e');
+    }
+
+    try {
+      await DeviceStorage.init();
+    } catch (e) {
+      debugPrint('DeviceStorage init warning: $e');
+    }
+
+    ErrorWidget.builder = (details) => CustomErrorWidget(details: details);
+
+    runApp(
+      const ProviderScope(
+        child: WhatsApp(),
+      ),
+    );
+  }, (error, stackTrace) {
+    debugPrint('Uncaught root error: $error\n$stackTrace');
+  });
 }
 
 class WhatsApp extends ConsumerWidget {

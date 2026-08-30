@@ -86,6 +86,9 @@ android {
         release {
             // Use release signing if key.properties exists, otherwise fallback to debug for CI
             signingConfig keystoreProperties['storeFile'] ? signingConfigs.release : signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }

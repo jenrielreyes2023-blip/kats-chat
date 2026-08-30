@@ -110,8 +110,8 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      - name: Build APK (ARM64)
-        run: flutter build apk --release --target-platform android-arm64 --dart-define=HTTPSMS_API_KEY=${{ secrets.HTTPSMS_API_KEY }} --dart-define=HTTPSMS_GATEWAY=${{ secrets.HTTPSMS_GATEWAY }} --dart-define=R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }} --dart-define=R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }} --dart-define=R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }} --dart-define=R2_BUCKET=${{ secrets.R2_BUCKET }} --dart-define=R2_PUBLIC_URL=${{ secrets.R2_PUBLIC_URL }} --dart-define=R2_ENDPOINT=${{ secrets.R2_ENDPOINT }}
+      - name: Build APK
+        run: flutter build apk --release --dart-define=HTTPSMS_API_KEY=${{ secrets.HTTPSMS_API_KEY }} --dart-define=HTTPSMS_GATEWAY=${{ secrets.HTTPSMS_GATEWAY }} --dart-define=R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }} --dart-define=R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }} --dart-define=R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }} --dart-define=R2_BUCKET=${{ secrets.R2_BUCKET }} --dart-define=R2_PUBLIC_URL=${{ secrets.R2_PUBLIC_URL }} --dart-define=R2_ENDPOINT=${{ secrets.R2_ENDPOINT }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
