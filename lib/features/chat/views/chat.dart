@@ -146,7 +146,11 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         actions: [
           IconButton(
             onPressed: recordingState == RecordingState.notRecording
-                ? () => CallService.startVideoCall(other.id)
+                ? () => CallService.startVideoCall(
+                      context,
+                      other.id,
+                      calleeName: widget.otherUserContactName,
+                    )
                 : null,
             icon: const Icon(
               Icons.videocam_rounded,
@@ -156,7 +160,11 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           ),
           IconButton(
             onPressed: recordingState == RecordingState.notRecording
-                ? () => CallService.startVoiceCall(other.id)
+                ? () => CallService.startVoiceCall(
+                      context,
+                      other.id,
+                      calleeName: widget.otherUserContactName,
+                    )
                 : null,
             icon: const Icon(
               Icons.call,

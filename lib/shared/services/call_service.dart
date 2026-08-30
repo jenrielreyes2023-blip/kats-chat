@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:tencent_calls_uikit/tencent_calls_uikit.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
+import 'package:whatsapp_clone/shared/utils/abc.dart';
 
 class CallService {
   static const int sdkAppId = 20047194;
@@ -69,20 +71,110 @@ class CallService {
   }
 
   /// Start a 1-on-1 Voice Call
-  static Future<void> startVoiceCall(String calleeId) async {
+  static Future<void> startVoiceCall(
+    BuildContext context,
+    String calleeId, {
+    String? calleeName,
+  }) async {
+    if (calleeId == 'whatsup_bot') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Hindi available ang voice call para sa WhatsUp Assistant 🤖. Subukan tumawag sa isang totoong contact.',
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    if (!_isLoggedIn) {
+      final currUser = getCurrentUser();
+      if (currUser != null) {
+        await login(currUser);
+      }
+    }
+
     try {
-      await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio);
+      final res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio);
+      if (res.code.isNotEmpty && res.code != '0') {
+        debugPrint('Tencent Voice Call error: ${res.code} - ${res.message}');
+        if (context.mounted) {
+          final errorMsg = res.message != null && res.message!.isNotEmpty
+              ? res.message!
+              : res.code;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Call failed: $errorMsg'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     } catch (e) {
       debugPrint('Error initiating voice call: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hindi makatawag: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
   /// Start a 1-on-1 Video Call
-  static Future<void> startVideoCall(String calleeId) async {
+  static Future<void> startVideoCall(
+    BuildContext context,
+    String calleeId, {
+    String? calleeName,
+  }) async {
+    if (calleeId == 'whatsup_bot') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Hindi available ang video call para sa WhatsUp Assistant 🤖. Subukan tumawag sa isang totoong contact.',
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    if (!_isLoggedIn) {
+      final currUser = getCurrentUser();
+      if (currUser != null) {
+        await login(currUser);
+      }
+    }
+
     try {
-      await TUICallKit.instance.calls([calleeId], TUICallMediaType.video);
+      final res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.video);
+      if (res.code.isNotEmpty && res.code != '0') {
+        debugPrint('Tencent Video Call error: ${res.code} - ${res.message}');
+        if (context.mounted) {
+          final errorMsg = res.message != null && res.message!.isNotEmpty
+              ? res.message!
+              : res.code;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Video call failed: $errorMsg'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     } catch (e) {
       debugPrint('Error initiating video call: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hindi makatawag: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
