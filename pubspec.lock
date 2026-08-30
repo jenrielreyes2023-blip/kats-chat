@@ -65,14 +65,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.11.0"
-  atomic_x_core:
-    dependency: transitive
-    description:
-      name: atomic_x_core
-      sha256: "5d9772a6e7c692add19f6f309a3683380543bca1d25d31ba4dab9dc9feeb2f59"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.0.2"
   audio_session:
     dependency: "direct main"
     description:
@@ -710,11 +702,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.1"
-  flutter_localizations:
-    dependency: transitive
-    description: flutter
-    source: sdk
-    version: "0.0.0"
   flutter_native_splash:
     dependency: "direct dev"
     description:
@@ -771,14 +758,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.2.13"
-  flutter_svg:
-    dependency: transitive
-    description:
-      name: flutter_svg
-      sha256: d44bf546b13025ec7353091516f6881f1d4c633993cb109c3916c3a0159dadf1
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -1125,14 +1104,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.0"
-  path_parsing:
-    dependency: transitive
-    description:
-      name: path_parsing
-      sha256: "883402936929eac138ee0a45da5b0f2c80f89913e6dc3bf77eb65b84b409c6ca"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
   path_provider:
     dependency: "direct main"
     description:
@@ -1325,22 +1296,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.9"
-  rtc_room_engine:
-    dependency: transitive
-    description:
-      name: rtc_room_engine
-      sha256: "4fd978f68ca5b0991ebfa460980b7251c7729349a9d6902ab97cc1a6cbc34b94"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.2.0"
-  rtc_room_engine_impl:
-    dependency: transitive
-    description:
-      name: rtc_room_engine_impl
-      sha256: afaf245937f2686a10ed669ca5c1bf32a1794081041d81142898e210b21b1430
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.2.0"
   rx:
     dependency: transitive
     description:
@@ -1534,34 +1489,34 @@ packages:
     dependency: "direct main"
     description:
       name: tencent_calls_uikit
-      sha256: "420e04a776ced52eb264af4d8ef065f132f213ccd623f0a501c241912f8c50c8"
+      sha256: e4f1618ef1165f8ad875672db18a566b819f4bfc37ebff6f8457e402b12f73b1
       url: "https://pub.dev"
     source: hosted
-    version: "5.0.0"
+    version: "3.6.2"
   tencent_cloud_chat_sdk:
     dependency: transitive
     description:
       name: tencent_cloud_chat_sdk
-      sha256: "2fa59a2731740aaab7bdedc7caa2968f4270aa7ae7442483bf9f21a6a38f922a"
+      sha256: ab2c43a9e24faf3efb6c6149c1c9994203c024721fd20aee66adf2e1f4746393
       url: "https://pub.dev"
     source: hosted
-    version: "9.0.7652+1"
+    version: "8.9.7545"
   tencent_cloud_uikit_core:
     dependency: transitive
     description:
       name: tencent_cloud_uikit_core
-      sha256: "91acb3e67c050aa735d1dc21b35a75e638f372c32f97c538ab5ae5a848bab77f"
+      sha256: fcc102c9000c15df9ad0e1b0ba66f23192a237018805380c77530cdf3b73a14f
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "1.7.6"
   tencent_rtc_sdk:
     dependency: transitive
     description:
       name: tencent_rtc_sdk
-      sha256: "67b0958cd90131217fbcbdaaf191c8931742fd5134d84271be5d963f25812545"
+      sha256: "0c667c546ee382a4b542b26524971be976df885b7d0bc179758b09d72a8517c9"
       url: "https://pub.dev"
     source: hosted
-    version: "13.4.2"
+    version: "12.9.1"
   term_glyph:
     dependency: transitive
     description:
@@ -1594,14 +1549,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.1"
-  tuikit_atomic_x:
-    dependency: "direct overridden"
-    description:
-      name: tuikit_atomic_x
-      sha256: "94a3fc463beaa8b0e949d50f999189b4b92e1782be2e486059612bcd1d12c68b"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.0.0"
   tuple:
     dependency: transitive
     description:
@@ -1698,30 +1645,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
-  vector_graphics:
-    dependency: transitive
-    description:
-      name: vector_graphics
-      sha256: "44cc7104ff32563122a929e4620cf3efd584194eec6d1d913eb5ba593dbcf6de"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.18"
-  vector_graphics_codec:
-    dependency: transitive
-    description:
-      name: vector_graphics_codec
-      sha256: "99fd9fbd34d9f9a32efd7b6a6aae14125d8237b10403b422a6a6dfeac2806146"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.13"
-  vector_graphics_compiler:
-    dependency: transitive
-    description:
-      name: vector_graphics_compiler
-      sha256: "1b4b9e706a10294258727674a340ae0d6e64a7231980f9f9a3d12e4b42407aad"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.16"
   vector_math:
     dependency: transitive
     description:

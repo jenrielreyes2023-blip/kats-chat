@@ -368,7 +368,7 @@ class FirebaseFirestoreRepo {
     if (userStr == null) return;
     try {
       final user = jsonDecode(userStr);
-      return firestore
+      await firestore
           .collection('fcmTokens')
           .doc(user['id'])
           .set({'token': token});

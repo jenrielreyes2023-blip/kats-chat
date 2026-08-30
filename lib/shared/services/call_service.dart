@@ -54,14 +54,14 @@ class CallService {
         userSig,
       );
 
-      if (res.errorCode == 0) {
+      if (res.code.isEmpty || res.code == '0') {
         _isLoggedIn = true;
         await TUICallKit.instance.setSelfInfo(user.name, user.avatarUrl);
         await TUICallKit.instance.enableFloatWindow(true);
         debugPrint('Tencent CallKit logged in successfully for ${user.name}');
       } else {
         debugPrint(
-            'Tencent CallKit login code: ${res.errorCode}, msg: ${res.errorMessage}');
+            'Tencent CallKit login code: ${res.code}, msg: ${res.message}');
       }
     } catch (e) {
       debugPrint('Error logging in to Tencent CallKit: $e');
@@ -71,7 +71,7 @@ class CallService {
   /// Start a 1-on-1 Voice Call
   static Future<void> startVoiceCall(String calleeId) async {
     try {
-      await TUICallKit.instance.calls([calleeId], CallMediaType.audio);
+      await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio);
     } catch (e) {
       debugPrint('Error initiating voice call: $e');
     }
@@ -80,7 +80,7 @@ class CallService {
   /// Start a 1-on-1 Video Call
   static Future<void> startVideoCall(String calleeId) async {
     try {
-      await TUICallKit.instance.calls([calleeId], CallMediaType.video);
+      await TUICallKit.instance.calls([calleeId], TUICallMediaType.video);
     } catch (e) {
       debugPrint('Error initiating video call: $e');
     }
