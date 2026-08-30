@@ -12,6 +12,7 @@ class CallService {
       '142f82f08ed2c9c2993ef632f96d46f462cd1c3bec75feb80fc8abcb0870257a';
 
   static bool _isLoggedIn = false;
+  static String _loggedInUserId = '';
 
   /// Generates the official Tencent cryptographic UserSig using Tencent's official algorithm
   static String generateUserSig(String userId) {
@@ -19,8 +20,20 @@ class CallService {
   }
 
   /// Logs into TUICallKit with the current user credentials
-  static Future<void> login(User user) async {
+  static Future<bool> login(User user) async {
+    if (_isLoggedIn && _loggedInUserId == user.id) {
+      return true;
+    }
+
     try {
+      // 1. Ensure user is imported to Tencent Cloud first
+      await ensureUserImported(
+        userId: user.id,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+      );
+
+      // 2. Perform TUICallKit Login
       final userSig = generateUserSig(user.id);
       final res = await TUICallKit.instance.login(
         sdkAppId,
@@ -30,6 +43,7 @@ class CallService {
 
       if (res.code.isEmpty || res.code == '0') {
         _isLoggedIn = true;
+        _loggedInUserId = user.id;
         try {
           await TUICallKit.instance.setSelfInfo(user.name, user.avatarUrl);
         } catch (_) {}
@@ -37,12 +51,15 @@ class CallService {
           await TUICallKit.instance.enableFloatWindow(true);
         } catch (_) {}
         debugPrint('Tencent CallKit logged in successfully for ${user.name} (${user.id})');
+        return true;
       } else {
         debugPrint(
             'Tencent CallKit login failed - code: ${res.code}, msg: ${res.message}');
+        return false;
       }
     } catch (e) {
       debugPrint('Error logging in to Tencent CallKit: $e');
+      return false;
     }
   }
 
@@ -100,11 +117,9 @@ class CallService {
       return;
     }
 
-    if (!_isLoggedIn) {
-      final currUser = getCurrentUser();
-      if (currUser != null) {
-        await login(currUser);
-      }
+    final currUser = getCurrentUser();
+    if (currUser != null) {
+      await login(currUser);
     }
 
     // Auto-ensure callee is imported to Tencent Cloud to guarantee tinyid exists
@@ -115,7 +130,21 @@ class CallService {
     );
 
     try {
-      final res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio);
+      var res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio);
+      if (res.code.isNotEmpty && res.code != '0') {
+        // If tinyid failed, retry login and re-call once
+        if ((res.message ?? '').contains('tinyid') && currUser != null) {
+          _isLoggedIn = false;
+          await login(currUser);
+          await ensureUserImported(
+            userId: calleeId,
+            name: calleeName ?? 'User',
+            avatarUrl: calleeAvatar ?? '',
+          );
+          res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio);
+        }
+      }
+
       if (res.code.isNotEmpty && res.code != '0') {
         debugPrint('Tencent Voice Call error: ${res.code} - ${res.message}');
         if (context.mounted) {
@@ -162,11 +191,9 @@ class CallService {
       return;
     }
 
-    if (!_isLoggedIn) {
-      final currUser = getCurrentUser();
-      if (currUser != null) {
-        await login(currUser);
-      }
+    final currUser = getCurrentUser();
+    if (currUser != null) {
+      await login(currUser);
     }
 
     // Auto-ensure callee is imported to Tencent Cloud to guarantee tinyid exists
@@ -177,7 +204,21 @@ class CallService {
     );
 
     try {
-      final res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.video);
+      var res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.video);
+      if (res.code.isNotEmpty && res.code != '0') {
+        // If tinyid failed, retry login and re-call once
+        if ((res.message ?? '').contains('tinyid') && currUser != null) {
+          _isLoggedIn = false;
+          await login(currUser);
+          await ensureUserImported(
+            userId: calleeId,
+            name: calleeName ?? 'User',
+            avatarUrl: calleeAvatar ?? '',
+          );
+          res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.video);
+        }
+      }
+
       if (res.code.isNotEmpty && res.code != '0') {
         debugPrint('Tencent Video Call error: ${res.code} - ${res.message}');
         if (context.mounted) {
