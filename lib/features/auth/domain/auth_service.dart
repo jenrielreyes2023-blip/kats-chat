@@ -6,6 +6,7 @@ import 'package:whatsapp_clone/features/auth/data/repositories/auth_repository.d
 import 'package:whatsapp_clone/shared/models/user.dart';
 import 'package:whatsapp_clone/shared/repositories/firebase_storage.dart';
 import 'package:whatsapp_clone/shared/repositories/r2_storage.dart';
+import 'package:whatsapp_clone/shared/services/call_service.dart';
 
 final authControllerProvider = Provider((ref) {
   return AuthController(ref: ref);
@@ -87,6 +88,12 @@ class AuthController {
     if (!success) {
       throw Exception('Failed to register user to Firestore');
     }
+    // Automatically register with Tencent Cloud IM
+    CallService.ensureUserImported(
+      userId: user.id,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+    );
     return user;
   }
 }

@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:tencent_calls_uikit/debug/generate_test_user_sig.dart';
 import 'package:tencent_calls_uikit/tencent_calls_uikit.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
@@ -44,11 +46,47 @@ class CallService {
     }
   }
 
+  /// Automatically registers/imports user to Tencent Cloud IM via REST API
+  /// so that their tinyid exists on Tencent servers immediately without waiting for them to log in.
+  static Future<void> ensureUserImported({
+    required String userId,
+    String name = 'User',
+    String avatarUrl = '',
+  }) async {
+    try {
+      final adminUserSig = GenerateTestUserSig.genTestSig(
+        'administrator',
+        sdkAppId,
+        secretKey,
+      );
+      final random = DateTime.now().millisecondsSinceEpoch % 4294967295;
+      final url = Uri.parse(
+        'https://adminapisgp.im.qcloud.com/v4/im_open_login_svc/account_import'
+        '?sdkappid=$sdkAppId&identifier=administrator&usersig=$adminUserSig&random=$random&contenttype=json',
+      );
+
+      final payload = {
+        'UserID': userId,
+        'Nick': name.isNotEmpty ? name : 'User',
+        'FaceUrl': avatarUrl.isNotEmpty
+            ? avatarUrl
+            : 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+      };
+
+      await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+    } catch (_) {}
+  }
+
   /// Start a 1-on-1 Voice Call
   static Future<void> startVoiceCall(
     BuildContext context,
     String calleeId, {
     String? calleeName,
+    String? calleeAvatar,
   }) async {
     if (calleeId == 'whatsup_bot') {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,6 +106,13 @@ class CallService {
         await login(currUser);
       }
     }
+
+    // Auto-ensure callee is imported to Tencent Cloud to guarantee tinyid exists
+    await ensureUserImported(
+      userId: calleeId,
+      name: calleeName ?? 'User',
+      avatarUrl: calleeAvatar ?? '',
+    );
 
     try {
       final res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio);
@@ -103,6 +148,7 @@ class CallService {
     BuildContext context,
     String calleeId, {
     String? calleeName,
+    String? calleeAvatar,
   }) async {
     if (calleeId == 'whatsup_bot') {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,6 +168,13 @@ class CallService {
         await login(currUser);
       }
     }
+
+    // Auto-ensure callee is imported to Tencent Cloud to guarantee tinyid exists
+    await ensureUserImported(
+      userId: calleeId,
+      name: calleeName ?? 'User',
+      avatarUrl: calleeAvatar ?? '',
+    );
 
     try {
       final res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.video);
