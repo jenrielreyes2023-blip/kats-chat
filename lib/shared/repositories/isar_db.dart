@@ -18,6 +18,20 @@ import '../../features/chat/models/message.dart';
 
 final isarProvider = Provider((ref) => IsarDb());
 
+/// FNV-1a 64-bit hash algorithm for deterministic positive 64-bit Isar IDs
+int fastHash(String string) {
+  var hash = 0xcbf29ce484222325;
+  var i = 0;
+  while (i < string.length) {
+    final codeUnit = string.codeUnitAt(i++);
+    hash ^= codeUnit >> 8;
+    hash *= 0x100000001b3;
+    hash ^= codeUnit & 0xFF;
+    hash *= 0x100000001b3;
+  }
+  return hash & 0x7fffffffffffffff;
+}
+
 class IsarDb {
   static late final Isar isar;
 
@@ -27,47 +41,66 @@ class IsarDb {
       [StoredMessageSchema, ContactSchema, UserSchema],
       directory: dir.path,
     );
+
+    // Self-healing: clean up any existing duplicate message rows on startup
+    try {
+      final allMessages = await isar.storedMessages.where().findAll();
+      final seenIds = <String>{};
+      final duplicateIsarIds = <Id>[];
+      for (final msg in allMessages) {
+        if (!seenIds.add(msg.messageId)) {
+          duplicateIsarIds.add(msg.id);
+        }
+      }
+      if (duplicateIsarIds.isNotEmpty) {
+        await isar.writeTxn(() async {
+          await isar.storedMessages.deleteAll(duplicateIsarIds);
+        });
+      }
+    } catch (_) {}
   }
 
   static Future<void> addMessage(Message message) async {
-    final existing = await isar.storedMessages
-        .filter()
-        .messageIdEqualTo(message.id)
-        .build()
-        .findFirst();
-
-    if (existing != null) {
-      if (existing.status != message.status) {
-        await updateMessage(message.id, status: message.status);
-      }
-      return;
-    }
-
-    final storedMsg = StoredMessage(
-      messageId: message.id,
-      chatId: getChatId(message.senderId, message.receiverId),
-      content: message.content,
-      senderId: message.senderId,
-      receiverId: message.receiverId,
-      status: message.status,
-      timestamp: message.timestamp.toDate(),
-      attachment: message.attachment != null
-          ? EmbeddedAttachment(
-              fileName: message.attachment!.fileName,
-              fileExtension: message.attachment!.fileExtension,
-              fileSize: message.attachment!.fileSize,
-              width: message.attachment!.width,
-              height: message.attachment!.height,
-              autoDownload: message.attachment!.autoDownload,
-              uploadStatus: message.attachment!.uploadStatus,
-              url: message.attachment!.url,
-              type: message.attachment!.type,
-              samples: message.attachment!.samples,
-            )
-          : null,
-    );
-
+    final targetId = fastHash(message.id);
     await isar.writeTxn(() async {
+      final existing = await isar.storedMessages
+          .filter()
+          .messageIdEqualTo(message.id)
+          .build()
+          .findFirst();
+
+      if (existing != null) {
+        if (existing.status != message.status) {
+          existing.status = message.status;
+          await isar.storedMessages.put(existing);
+        }
+        return;
+      }
+
+      final storedMsg = StoredMessage(
+        messageId: message.id,
+        chatId: getChatId(message.senderId, message.receiverId),
+        content: message.content,
+        senderId: message.senderId,
+        receiverId: message.receiverId,
+        status: message.status,
+        timestamp: message.timestamp.toDate(),
+        attachment: message.attachment != null
+            ? EmbeddedAttachment(
+                fileName: message.attachment!.fileName,
+                fileExtension: message.attachment!.fileExtension,
+                fileSize: message.attachment!.fileSize,
+                width: message.attachment!.width,
+                height: message.attachment!.height,
+                autoDownload: message.attachment!.autoDownload,
+                uploadStatus: message.attachment!.uploadStatus,
+                url: message.attachment!.url,
+                type: message.attachment!.type,
+                samples: message.attachment!.samples,
+              )
+            : null,
+      )..id = targetId;
+
       await isar.storedMessages.put(storedMsg);
     });
   }
@@ -75,46 +108,60 @@ class IsarDb {
   static Future<void> addMessages(List<Message> messages) async {
     if (messages.isEmpty) return;
 
-    final existingList = await isar.storedMessages
-        .filter()
-        .anyOf(messages, (q, Message m) => q.messageIdEqualTo(m.id))
-        .build()
-        .findAll();
-    final existingIds = existingList.map((e) => e.messageId).toSet();
-
-    final newStoredMessages = messages
-        .where((m) => !existingIds.contains(m.id))
-        .map(
-          (message) => StoredMessage(
-            messageId: message.id,
-            chatId: getChatId(message.senderId, message.receiverId),
-            content: message.content,
-            senderId: message.senderId,
-            receiverId: message.receiverId,
-            status: message.status,
-            timestamp: message.timestamp.toDate(),
-            attachment: message.attachment != null
-                ? EmbeddedAttachment(
-                    fileName: message.attachment!.fileName,
-                    fileExtension: message.attachment!.fileExtension,
-                    fileSize: message.attachment!.fileSize,
-                    width: message.attachment!.width,
-                    height: message.attachment!.height,
-                    uploadStatus: message.attachment!.uploadStatus,
-                    autoDownload: message.attachment!.autoDownload,
-                    url: message.attachment!.url,
-                    type: message.attachment!.type,
-                    samples: message.attachment!.samples,
-                  )
-                : null,
-          ),
-        )
-        .toList();
-
-    if (newStoredMessages.isEmpty) return;
+    // Deduplicate the incoming batch itself first
+    final uniqueIncoming = <String, Message>{};
+    for (final m in messages) {
+      uniqueIncoming[m.id] = m;
+    }
 
     await isar.writeTxn(() async {
-      await isar.storedMessages.putAll(newStoredMessages);
+      final existingList = await isar.storedMessages
+          .filter()
+          .anyOf(uniqueIncoming.values, (q, Message m) => q.messageIdEqualTo(m.id))
+          .build()
+          .findAll();
+      final existingMap = {for (final e in existingList) e.messageId: e};
+
+      final toPut = <StoredMessage>[];
+      for (final message in uniqueIncoming.values) {
+        final existing = existingMap[message.id];
+        if (existing != null) {
+          if (existing.status != message.status) {
+            existing.status = message.status;
+            toPut.add(existing);
+          }
+        } else {
+          toPut.add(
+            StoredMessage(
+              messageId: message.id,
+              chatId: getChatId(message.senderId, message.receiverId),
+              content: message.content,
+              senderId: message.senderId,
+              receiverId: message.receiverId,
+              status: message.status,
+              timestamp: message.timestamp.toDate(),
+              attachment: message.attachment != null
+                  ? EmbeddedAttachment(
+                      fileName: message.attachment!.fileName,
+                      fileExtension: message.attachment!.fileExtension,
+                      fileSize: message.attachment!.fileSize,
+                      width: message.attachment!.width,
+                      height: message.attachment!.height,
+                      uploadStatus: message.attachment!.uploadStatus,
+                      autoDownload: message.attachment!.autoDownload,
+                      url: message.attachment!.url,
+                      type: message.attachment!.type,
+                      samples: message.attachment!.samples,
+                    )
+                  : null,
+            )..id = fastHash(message.id),
+          );
+        }
+      }
+
+      if (toPut.isNotEmpty) {
+        await isar.storedMessages.putAll(toPut);
+      }
     });
   }
 
@@ -162,32 +209,39 @@ class IsarDb {
         .sortByTimestampDesc()
         .build()
         .watch(fireImmediately: true)
-        .map((event) => event
-            .map(
-              (msg) => Message(
-                id: msg.messageId,
-                content: msg.content,
-                senderId: msg.senderId,
-                receiverId: msg.receiverId,
-                timestamp: Timestamp.fromDate(msg.timestamp),
-                status: msg.status,
-                attachment: msg.attachment != null
-                    ? Attachment(
-                        fileName: msg.attachment!.fileName!,
-                        fileExtension: msg.attachment!.fileExtension!,
-                        fileSize: msg.attachment!.fileSize!,
-                        width: msg.attachment!.width,
-                        height: msg.attachment!.height,
-                        uploadStatus: msg.attachment!.uploadStatus!,
-                        autoDownload: msg.attachment!.autoDownload ?? false,
-                        url: msg.attachment!.url!,
-                        type: msg.attachment!.type!,
-                        samples: msg.attachment!.samples,
-                      )
-                    : null,
-              ),
-            )
-            .toList());
+        .map((event) {
+          final seenIds = <String>{};
+          final messages = <Message>[];
+          for (final msg in event) {
+            if (seenIds.add(msg.messageId)) {
+              messages.add(
+                Message(
+                  id: msg.messageId,
+                  content: msg.content,
+                  senderId: msg.senderId,
+                  receiverId: msg.receiverId,
+                  timestamp: Timestamp.fromDate(msg.timestamp),
+                  status: msg.status,
+                  attachment: msg.attachment != null
+                      ? Attachment(
+                          fileName: msg.attachment!.fileName ?? '',
+                          fileExtension: msg.attachment!.fileExtension ?? '',
+                          fileSize: msg.attachment!.fileSize ?? 0,
+                          width: msg.attachment!.width,
+                          height: msg.attachment!.height,
+                          uploadStatus: msg.attachment!.uploadStatus ?? UploadStatus.uploaded,
+                          autoDownload: msg.attachment!.autoDownload ?? false,
+                          url: msg.attachment!.url ?? '',
+                          type: msg.attachment!.type ?? AttachmentType.document,
+                          samples: msg.attachment!.samples,
+                        )
+                      : null,
+                ),
+              );
+            }
+          }
+          return messages;
+        });
   }
 
   static Stream<List<RecentChat>> getRecentChatStream(WidgetRef ref) {
@@ -202,8 +256,10 @@ class IsarDb {
         .asyncMap((event) async {
       final Map<String, int> visitedPartners = {};
       final recentChats = <RecentChat>[];
+      final seenMsgIds = <String>{};
 
       for (final msg in event) {
+        if (!seenMsgIds.add(msg.messageId)) continue;
         final clientIsSender = msg.senderId == currentUser.id;
         final partnerId = clientIsSender ? msg.receiverId : msg.senderId;
 
