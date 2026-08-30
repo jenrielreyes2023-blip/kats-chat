@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,6 +86,43 @@ class PushNotificationsRepo {
           'authorId': user.id,
           'authorName': user.name,
           'authorAvatarUrl': user.avatarUrl,
+        },
+      );
+
+      await post(
+        Uri.parse(url),
+        headers: headers,
+        body: messageJson,
+      ).timeout(const Duration(seconds: 5));
+    } catch (_) {}
+  }
+
+  static Future<void> notifyIncomingCall({
+    required String receiverId,
+    required String callerName,
+    required String callerAvatar,
+    required bool isVideo,
+  }) async {
+    try {
+      final docSnap = await FirebaseFirestore.instance.collection('fcmTokens').doc(receiverId).get();
+      final token = docSnap.data()?['token'] as String?;
+      if (token == null || token.isEmpty) return;
+
+      const String url =
+          'https://embassy-leeds-latest-alice.trycloudflare.com/new_message';
+      final Map<String, String> headers = {"Content-Type": "application/json"};
+
+      final user = getCurrentUser();
+      if (user == null) return;
+
+      final String messageJson = jsonEncode(
+        {
+          'token': token,
+          'messageId': 'call_${DateTime.now().millisecondsSinceEpoch}',
+          'messageContent': isVideo ? '📹 Incoming Video Call...' : '📞 Incoming Voice Call...',
+          'authorId': user.id,
+          'authorName': callerName.isNotEmpty ? callerName : user.name,
+          'authorAvatarUrl': callerAvatar.isNotEmpty ? callerAvatar : user.avatarUrl,
         },
       );
 

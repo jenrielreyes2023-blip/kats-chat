@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:tencent_calls_uikit/debug/generate_test_user_sig.dart';
 import 'package:tencent_calls_uikit/tencent_calls_uikit.dart';
 import 'package:whatsapp_clone/shared/models/user.dart';
+import 'package:whatsapp_clone/shared/repositories/push_notifications.dart';
 import 'package:whatsapp_clone/shared/utils/abc.dart';
 
 class CallService {
@@ -129,8 +130,24 @@ class CallService {
       avatarUrl: calleeAvatar ?? '',
     );
 
+    final pushInfo = TUIOfflinePushInfo()
+      ..title = currUser?.name ?? 'KatsChat'
+      ..desc = 'Incoming Voice Call'
+      ..androidSound = 'phone_ringing'
+      ..androidFCMChannelID = 'high_importance_channel';
+
+    final params = TUICallParams()..offlinePushInfo = pushInfo;
+
+    // Trigger FCM background notification to wake up recipient device
+    PushNotificationsRepo.notifyIncomingCall(
+      receiverId: calleeId,
+      callerName: currUser?.name ?? 'User',
+      callerAvatar: currUser?.avatarUrl ?? '',
+      isVideo: false,
+    );
+
     try {
-      var res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio);
+      var res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio, params);
       if (res.code.isNotEmpty && res.code != '0') {
         // If tinyid failed, retry login and re-call once
         if ((res.message ?? '').contains('tinyid') && currUser != null) {
@@ -141,7 +158,7 @@ class CallService {
             name: calleeName ?? 'User',
             avatarUrl: calleeAvatar ?? '',
           );
-          res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio);
+          res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.audio, params);
         }
       }
 
@@ -203,8 +220,24 @@ class CallService {
       avatarUrl: calleeAvatar ?? '',
     );
 
+    final videoPushInfo = TUIOfflinePushInfo()
+      ..title = currUser?.name ?? 'KatsChat'
+      ..desc = 'Incoming Video Call'
+      ..androidSound = 'phone_ringing'
+      ..androidFCMChannelID = 'high_importance_channel';
+
+    final videoParams = TUICallParams()..offlinePushInfo = videoPushInfo;
+
+    // Trigger FCM background notification to wake up recipient device
+    PushNotificationsRepo.notifyIncomingCall(
+      receiverId: calleeId,
+      callerName: currUser?.name ?? 'User',
+      callerAvatar: currUser?.avatarUrl ?? '',
+      isVideo: true,
+    );
+
     try {
-      var res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.video);
+      var res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.video, videoParams);
       if (res.code.isNotEmpty && res.code != '0') {
         // If tinyid failed, retry login and re-call once
         if ((res.message ?? '').contains('tinyid') && currUser != null) {
@@ -215,7 +248,7 @@ class CallService {
             name: calleeName ?? 'User',
             avatarUrl: calleeAvatar ?? '',
           );
-          res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.video);
+          res = await TUICallKit.instance.calls([calleeId], TUICallMediaType.video, videoParams);
         }
       }
 
