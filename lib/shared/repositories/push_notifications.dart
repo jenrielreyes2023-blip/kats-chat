@@ -28,60 +28,108 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 // In-memory conversation message history for Android MessagingStyle threading
 final Map<String, List<fln.Message>> _conversationThreads = {};
 
+bool _isLocalNotificationsInitialized = false;
+
+Future<void> ensureLocalNotificationsInitialized([
+  Future<void> Function(RemoteMessage)? onMessageOpenedApp,
+]) async {
+  if (_isLocalNotificationsInitialized) return;
+
+  try {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/launcher_icon');
+    const DarwinInitializationSettings initializationSettingsDarwin =
+        DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsDarwin,
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse:
+          (NotificationResponse response) async {
+        if (response.payload != null &&
+            response.payload!.isNotEmpty &&
+            onMessageOpenedApp != null) {
+          try {
+            final Map<String, dynamic> data = jsonDecode(response.payload!);
+            onMessageOpenedApp(RemoteMessage(data: data));
+          } catch (_) {}
+        }
+      },
+    );
+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'high_importance_channel',
+      'High Importance Notifications',
+      description: 'This channel is used for important chat notifications.',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    );
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
+    _isLocalNotificationsInitialized = true;
+  } catch (e) {
+    debugPrint('Error initializing local notifications: $e');
+  }
+}
+
 class PushNotificationsRepo {
   final FirebaseMessaging instance;
   final ProviderRef ref;
 
   PushNotificationsRepo(this.instance, this.ref);
 
+  static String? _cachedServerUrl;
+
+  /// Dynamically resolves the notification server endpoint from Firestore with local caching
+  static Future<String> getNotificationServerUrl() async {
+    if (_cachedServerUrl != null && _cachedServerUrl!.isNotEmpty) {
+      return _cachedServerUrl!;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('system_config')
+          .doc('notifications')
+          .get(const GetOptions(source: Source.serverAndCache));
+      final url = doc.data()?['url'] as String?;
+      if (url != null && url.isNotEmpty) {
+        _cachedServerUrl = url;
+        SharedPref.instance.setString('notification_server_url', url);
+        return url;
+      }
+    } catch (_) {}
+
+    final saved = SharedPref.instance.getString('notification_server_url');
+    if (saved != null && saved.isNotEmpty) {
+      _cachedServerUrl = saved;
+      return saved;
+    }
+
+    return 'https://strand-salmon-assessed-sponsor.trycloudflare.com/new_message';
+  }
+
   Future<void> init({
     required Future<void> Function(RemoteMessage) onMessageOpenedApp,
   }) async {
     try {
-      // 1. Initialize local notification plugin
-      const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings('@mipmap/launcher_icon');
-      const DarwinInitializationSettings initializationSettingsDarwin =
-          DarwinInitializationSettings(
-        requestAlertPermission: true,
-        requestBadgePermission: true,
-        requestSoundPermission: true,
-      );
-      const InitializationSettings initializationSettings =
-          InitializationSettings(
-        android: initializationSettingsAndroid,
-        iOS: initializationSettingsDarwin,
-      );
+      // 1. Initialize local notification plugin and channel
+      await ensureLocalNotificationsInitialized(onMessageOpenedApp);
 
-      await flutterLocalNotificationsPlugin.initialize(
-        initializationSettings,
-        onDidReceiveNotificationResponse:
-            (NotificationResponse response) async {
-          if (response.payload != null && response.payload!.isNotEmpty) {
-            try {
-              final Map<String, dynamic> data = jsonDecode(response.payload!);
-              onMessageOpenedApp(RemoteMessage(data: data));
-            } catch (_) {}
-          }
-        },
-      );
-
-      // 2. Create High Importance Notification Channel for Android
-      const AndroidNotificationChannel channel = AndroidNotificationChannel(
-        'high_importance_channel',
-        'High Importance Notifications',
-        description: 'This channel is used for important chat notifications.',
-        importance: Importance.max,
-        playSound: true,
-        enableVibration: true,
-      );
-
-      await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(channel);
-
-      // 3. Request runtime notification permissions (Android 13+ & iOS)
+      // 2. Request runtime notification permissions (Android 13+ & iOS)
       final settings = await instance.requestPermission(
         alert: true,
         announcement: false,
@@ -92,14 +140,14 @@ class PushNotificationsRepo {
         sound: true,
       );
 
-      // 4. Set foreground presentation options
+      // 3. Set foreground presentation options to display heads-up banners
       await instance.setForegroundNotificationPresentationOptions(
         alert: true,
         badge: true,
         sound: true,
       );
 
-      // 5. Fetch and register initial FCM token
+      // 4. Fetch and register initial FCM token immediately
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
         final token = await instance.getToken();
@@ -129,8 +177,7 @@ class PushNotificationsRepo {
 
       if (token == null || token.isEmpty) return;
 
-      const String url =
-          'https://embassy-leeds-latest-alice.trycloudflare.com/new_message';
+      final String url = await getNotificationServerUrl();
       final Map<String, String> headers = {"Content-Type": "application/json"};
 
       String messageContent = message.content;
@@ -180,8 +227,7 @@ class PushNotificationsRepo {
       final token = docSnap.data()?['token'] as String?;
       if (token == null || token.isEmpty) return;
 
-      const String url =
-          'https://embassy-leeds-latest-alice.trycloudflare.com/new_message';
+      final String url = await getNotificationServerUrl();
       final Map<String, String> headers = {"Content-Type": "application/json"};
 
       final user = getCurrentUser();
@@ -214,6 +260,8 @@ class PushNotificationsRepo {
 /// or BigPictureStyle strictly when an image attachment is present.
 Future<void> showMessagingNotification(RemoteMessage remoteMessage) async {
   try {
+    await ensureLocalNotificationsInitialized();
+
     final data = remoteMessage.data;
     final String authorId = data['authorId'] ?? '';
     final String authorName = data['authorName'] ??
@@ -241,7 +289,7 @@ Future<void> showMessagingNotification(RemoteMessage remoteMessage) async {
       try {
         final res = await http
             .get(Uri.parse(authorAvatarUrl))
-            .timeout(const Duration(seconds: 3));
+            .timeout(const Duration(seconds: 2));
         if (res.statusCode == 200) {
           avatarBytes = res.bodyBytes;
         }
@@ -259,7 +307,7 @@ Future<void> showMessagingNotification(RemoteMessage remoteMessage) async {
       try {
         final res = await http
             .get(Uri.parse(attachmentUrl))
-            .timeout(const Duration(seconds: 4));
+            .timeout(const Duration(seconds: 3));
         if (res.statusCode == 200) {
           attachmentImageBytes = res.bodyBytes;
         }
