@@ -49,10 +49,10 @@ class CallService {
           await TUICallKit.instance.setSelfInfo(user.name, user.avatarUrl);
         } catch (_) {}
         try {
-          await TUICallKit.instance.enableFloatWindow(true);
+          await TUICallKit.instance.enableFloatWindow(false);
         } catch (_) {}
         try {
-          TUICallKit.instance.enableIncomingBanner(true);
+          TUICallKit.instance.enableIncomingBanner(false);
         } catch (_) {}
         debugPrint('Tencent CallKit logged in successfully for ${user.name} (${user.id})');
         return true;

@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:whatsapp_clone/features/auth/data/repositories/auth_repository.dart';
 import 'package:whatsapp_clone/features/auth/views/welcome.dart';
 import 'package:whatsapp_clone/features/chat/models/attachement.dart';
@@ -153,7 +152,6 @@ class _HomePageState extends ConsumerState<HomePage>
       if (message != null) {
         await handleNotificationClick(message);
       }
-      _checkAndRequestFloatingWindowPermission();
     });
 
     _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
@@ -328,36 +326,6 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
-  Future<void> _checkAndRequestFloatingWindowPermission() async {
-    if (!Platform.isAndroid) return;
-    try {
-      final status = await Permission.systemAlertWindow.status;
-      if (!status.isGranted && mounted) {
-        showDialog(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: const Text('Pahintulot para sa Tawag 📞'),
-            content: const Text(
-              'Para magpakita ang tawag sa itaas ng screen (Heads-Up Banner) at gumana ang Floating Window habang nagcha-chat, i-allow ang "Display over other apps".',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('MAMAYA NA'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.pop(dialogContext);
-                  await Permission.systemAlertWindow.request();
-                },
-                child: const Text('I-ALLOW'),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (_) {}
-  }
 
   @override
   Widget build(BuildContext context) {
