@@ -534,7 +534,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
 
   Future<void> navigateToCameraView(BuildContext context) async {
     final cameras = await availableCameras();
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => CameraView(cameras: cameras)),
@@ -578,7 +578,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
       return attachments;
     }
 
-    if (!mounted) return null;
+    if (!context.mounted) return null;
     Navigator.pop(key.currentContext!);
     navigateToAttachmentSender(context, attachments);
     return null;
@@ -597,7 +597,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
 
     final attachments = createAttachmentsFromFiles(files);
 
-    if (!mounted) return;
+    if (!context.mounted) return;
     Navigator.pop(key.currentContext!);
     navigateToAttachmentSender(context, attachments);
   }
@@ -624,7 +624,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
       return attachments;
     }
 
-    if (!mounted) return null;
+    if (!context.mounted) return null;
     Navigator.pop(key.currentContext!);
     navigateToAttachmentSender(context, attachments);
     return null;

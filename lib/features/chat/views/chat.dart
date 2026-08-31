@@ -450,7 +450,7 @@ class _ChatInputContainerState extends ConsumerState<ChatInputContainer>
         milliseconds: MediaQuery.of(context).viewInsets.bottom > 0 ? 300 : 0,
       ),
       () async {
-        if (!mounted) return;
+        if (!mounted || !context.mounted) return;
         showDialog(
           barrierColor: null,
           context: context,

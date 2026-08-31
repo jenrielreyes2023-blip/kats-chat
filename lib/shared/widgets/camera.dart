@@ -248,7 +248,7 @@ class CameraViewState extends ConsumerState<CameraView>
                                   );
                                 },
                                 style: ButtonStyle(
-                                  foregroundColor: MaterialStatePropertyAll(
+                                  foregroundColor: WidgetStatePropertyAll(
                                     cameraType == CameraType.video
                                         ? colorTheme.yellowColor
                                         : colorTheme.greyColor,
@@ -264,7 +264,7 @@ class CameraViewState extends ConsumerState<CameraView>
                                   );
                                 },
                                 style: ButtonStyle(
-                                  foregroundColor: MaterialStatePropertyAll(
+                                  foregroundColor: WidgetStatePropertyAll(
                                     cameraType == CameraType.photo
                                         ? colorTheme.yellowColor
                                         : colorTheme.greyColor,

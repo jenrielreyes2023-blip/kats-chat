@@ -150,12 +150,12 @@ class _UserProfileCreationPageState
                     ),
                     InkWell(
                       onTap: () async {
+                        final nav = Navigator.of(context);
                         await ref
                             .read(userDetailsControllerProvider.notifier)
                             .setImageFromGallery(context);
 
-                        if (!mounted) return;
-                        Navigator.pop(context);
+                        nav.pop();
                       },
                       child: Column(
                         children: [

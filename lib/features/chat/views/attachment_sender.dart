@@ -173,7 +173,7 @@ class _AttachmentMessageSenderState
     final colorTheme = Theme.of(context).custom.colorTheme;
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
           return;
         }
